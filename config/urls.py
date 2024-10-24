@@ -4,7 +4,7 @@ from django.urls import include, path
 from retailing.urls import schema_view
 
 urlpatterns = [
-    path("", include("retailing.urls", namespace="library")),
+    # path("", include("retailing.urls", namespace="library")),
     path("admin/", admin.site.urls),
     path("users/", include("users.urls", namespace="users")),
     path(
