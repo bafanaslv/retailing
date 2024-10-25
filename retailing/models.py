@@ -26,25 +26,6 @@ class Country(models.Model):
         return f"Страна: {self.name} код: {self.code}"
 
 
-class Category(models.Model):
-    """Товары электроники как и другие типы товаров могут делиться на разные категории
-    (компьютеры, телефоны, телевизоры, бытовая техника и так далее)."""
-
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        verbose_name="Наименование",
-        help_text="Введите наименование категории",
-    )
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = "Категория"
-        verbose_name_plural = "Категории"
-
-
 class Supplier(models.Model):
     """Участниками торговой делятся на три вида: вендоры или производители товаров, дистрибьютеры - крупные оптовые
      торговцы закупающие товар у вендоров и ритейлеры (мелкие фирмы или индивидуальные предприниматели). На самом деле
@@ -75,6 +56,25 @@ class Supplier(models.Model):
     street = models.CharField(max_length=100, verbose_name="улица")
     house_number = models.CharField(max_length=10, verbose_name="номер дома")
     datetime_create = models.DateTimeField(verbose_name="время создания", default=datetime.datetime)
+
+
+class Category(models.Model):
+    """Товары электроники как и другие типы товаров могут делиться на разные категории
+    (компьютеры, телефоны, телевизоры, бытовая техника и так далее)."""
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="наименование",
+        help_text="введите наименование категории",
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
 
 
 class Product(models.Model):

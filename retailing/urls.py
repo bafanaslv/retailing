@@ -1,6 +1,12 @@
+from django.urls import path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from rest_framework.routers import SimpleRouter
+
+from retailing.apps import RetailingConfig
+from retailing.views import SupplierListApiView, SupplierCreateApiView, SupplierUpdateApiView, SupplierDestroyApiView, \
+    SupplierDetailApiView, CategoryViewSet
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -14,3 +20,30 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=[permissions.AllowAny],
 )
+
+app_name = RetailingConfig.name
+
+router_category = SimpleRouter()
+router_category.register("category", CategoryViewSet, basename="category")
+# router_books = SimpleRouter()
+# router_books.register("books", BooksViewSet, basename="books")
+
+urlpatterns = [
+    path("supplier/", SupplierListApiView.as_view(), name="supplier_list"),
+    path("supplier/create/", SupplierCreateApiView.as_view(), name="supplier_create"),
+    path(
+        "supplier/<int:pk>/", SupplierDetailApiView.as_view(), name="supplier_retrieve"
+    ),
+    path(
+        "supplier/update/<int:pk>/",
+        SupplierUpdateApiView.as_view(),
+        name="supplier_update",
+    ),
+    path(
+        "supplier/delete/<int:pk>/",
+        SupplierDestroyApiView.as_view(),
+        name="supplier_delete",
+    ),
+]
+urlpatterns += router_category.urls
+# urlpatterns += router_authors.urls
