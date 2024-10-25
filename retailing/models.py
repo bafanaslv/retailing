@@ -59,6 +59,12 @@ class Supplier(models.Model):
     name = models.CharField(max_length=100, verbose_name="нименование поставщика", unique=True)
     type = models.CharField(max_length=11, choices=TYPE, verbose_name="тип участника сети")
     email = models.EmailField(unique=True, verbose_name="E-mail")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        verbose_name="сотрудник",
+        related_name="supplier_user",
+    )
     country = models.ForeignKey(
         Country,
         related_name="supplier_country",

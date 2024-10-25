@@ -1,6 +1,11 @@
 from rest_framework.permissions import BasePermission
 
 
-class IsLibrarian(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.groups.filter(name="manager").exists()
+class IsActive(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.is_active
+
+
+class IsSuperuser(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.is_superuser

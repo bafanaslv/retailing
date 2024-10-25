@@ -10,12 +10,11 @@ NULLABLE = {"blank": True, "null": True}
 
 
 class Users(AbstractUser):
-    username = None
-    reader_name = models.CharField(max_length=50, verbose_name="ФИО пользователя")
+    username = models.CharField(max_length=50, verbose_name="имя пользователя")
     email = models.EmailField(unique=True, verbose_name="E-mail")
-    phone = models.CharField(max_length=15, verbose_name="Телефон")
+    phone = models.CharField(max_length=15, verbose_name="телефон")
     is_personal_data = models.BooleanField(
-        default=True, verbose_name="Согласие на обработку персональных данных"
+        default=True, verbose_name="согласие на обработку персональных данных"
     )
     avatar = models.ImageField(
         upload_to="users/avatars/", verbose_name="Аватар", **NULLABLE

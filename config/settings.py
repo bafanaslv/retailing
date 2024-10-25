@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -121,31 +120,6 @@ REST_FRAMEWORK = {
     "DATE_FORMAT": "%d-%m-%Y",
 }
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-}
-
-STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
-
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
-CELERY_TIMEZONE = "Europe/Moscow"
-CELERY_BEAT_SCHEDULE = {
-    # Задача для предупреждения о необходимости возврата книги в библиотеку
-    "check_last_login": {
-        "task": "library.tasks.send_mail_return_books",
-        "schedule": timedelta(minutes=1),
-    },
-}
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
-
-CORS_ALLOWED_ORIGINS = [
-    "https://read-only.example.com",
-    "https://read-and-write.example.com",
-]
-
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000/",
 ]
@@ -156,6 +130,3 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", False) == "True"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", False) == "True"
-
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_URL = os.getenv("TELEGRAM_URL")
