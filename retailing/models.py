@@ -1,13 +1,16 @@
+import datetime
+
 from django.db import models
 from datetime import date
 
 from config import settings
-from users.models import Users
+# from users.models import Users
 
 NULLABLE = {"blank": True, "null": True}
 
 
 class Country(models.Model):
+    """Страна где зарегистрован поставщик товара."""
     code = models.CharField(
         max_length=2, unique=True, verbose_name="код страны"
     )
@@ -24,13 +27,14 @@ class Country(models.Model):
 
 
 class Category(models.Model):
+    """Товары электроники как и другие типы товаров могут делиться на разные категории
+    (компьютеры, телефоны, телевизоры, бытовая техника и так далее)."""
+
     name = models.CharField(
         max_length=100,
+        unique=True,
         verbose_name="Наименование",
         help_text="Введите наименование категории",
-    )
-    description = models.TextField(
-        verbose_name="Опиcание", help_text="Введите описание категории"
     )
 
     def __str__(self):
@@ -42,7 +46,18 @@ class Category(models.Model):
 
 
 class Supplier(models.Model):
+    """Участниками торговой делятся на три вида: вендоры или производители товаров, дистрибьютеры - крупные оптовые
+     торговцы закупающие товар у вендоров и ритейлеры (мелкие фирмы или индивидуальные предприниматели). На самом деле
+     схема сложнее."""
+
+    TYPE = [
+        ("vendor", "производитель"),
+        ("distributor", "дистрибьютер"),
+        ("retailer", "ритейлер"),
+    ]
+
     name = models.CharField(max_length=100, verbose_name="нименование поставщика", unique=True)
+    type = models.CharField(max_length=11, choices=TYPE, verbose_name="тип участника сети")
     email = models.EmailField(unique=True, verbose_name="E-mail")
     country = models.ForeignKey(
         Country,
@@ -53,46 +68,60 @@ class Supplier(models.Model):
     city = models.CharField(max_length=100, verbose_name="город")
     street = models.CharField(max_length=100, verbose_name="улица")
     house_number = models.CharField(max_length=10, verbose_name="номер дома")
-    date_create = models.DateField(verbose_name="дата создания", default=date.today)
+    datetime_create = models.DateTimeField(verbose_name="время создания", default=datetime.datetime)
 
 
 class Product(models.Model):
     name = models.CharField(
         max_length=100,
-        verbose_name="Наименование"
+        verbose_name="наименование"
     )
-    description = models.TextField(
-        verbose_name="Опиcание", **NULLABLE
+    model = models.TextField(
+        verbose_name="модель", **NULLABLE
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
-        related_name="categories",
-        verbose_name="Категория"
-    )
-    image = models.ImageField(
-        upload_to="catalog/media",
-        verbose_name="Изображение", **NULLABLE
-    )
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name="Цена"
+        related_name="category",
+        verbose_name="категория"
     )
     owner = models.ForeignKey(
-        Users,
-        verbose_name='Владелец',
-        on_delete=models.CASCADE,
+        Supplier,
+        verbose_name='владелец',
+        on_delete=models.PROTECT,
         related_name="owner"
     )
     supplier = models.ForeignKey(
         Supplier,
-        verbose_name='Поставщик',
-        on_delete=models.CASCADE,
-        related_name="supplier"
+        verbose_name='поставщик',
+        on_delete=models.PROTECT,
+        related_name="supplier_product", **NULLABLE
     )
-    is_published = models.BooleanField(default=False, verbose_name='Опубликован')
+    release_date = models.DateField(verbose_name="дата выхода продукта на рынок")
     view_counter = models.PositiveIntegerField(
         default=0,
-        verbose_name="Счетчик проcмотров"
+        verbose_name="счетчик проcмотров"
     )
+    image = models.ImageField(
+        upload_to="catalog/media",
+        verbose_name="изображение", **NULLABLE
+    )
+
+
+class Payable(models.Model):
+    """Кредиторская задолженность"""
+
+    owner = models.ForeignKey(
+        Supplier,
+        verbose_name='владелец',
+        on_delete=models.PROTECT,
+        related_name="owner_payable"
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        verbose_name='поставщик',
+        on_delete=models.PROTECT,
+        related_name="supplier_payable", **NULLABLE
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="задолженность")
+    id_paid = models.BooleanField(verbose_name="погашена", default=False)

@@ -4,13 +4,14 @@
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from retailing.models import Supplier
 
 NULLABLE = {"blank": True, "null": True}
 
 
 class Users(AbstractUser):
     username = None
-    reader_name = models.CharField(max_length=50, verbose_name="ФИО читателя")
+    reader_name = models.CharField(max_length=50, verbose_name="ФИО пользователя")
     email = models.EmailField(unique=True, verbose_name="E-mail")
     phone = models.CharField(max_length=15, verbose_name="Телефон")
     is_personal_data = models.BooleanField(
@@ -21,6 +22,12 @@ class Users(AbstractUser):
     )
     tg_chat_id = models.CharField(
         max_length=50, verbose_name="Telergram chat_id", **NULLABLE
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        verbose_name='поставщик',
+        on_delete=models.PROTECT,
+        related_name="supplier_user", **NULLABLE
     )
 
     USERNAME_FIELD = "email"
