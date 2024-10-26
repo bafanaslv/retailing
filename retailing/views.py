@@ -4,7 +4,7 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView,
 from rest_framework.permissions import IsAuthenticated
 
 from retailing.models import Supplier, Category
-from retailing.paginations import CategoryPaginator
+from retailing.paginations import CategoryPaginator, SupplierPaginator
 from retailing.serialaizer import SupplierSerializer, CategorySerializer
 from users.permissions import IsSuperuser, IsActive
 
@@ -14,17 +14,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     queryset = Category.objects.all().order_by("id")
     serializer_class = CategorySerializer
-    pagination_class = CategoryPaginator
+    # pagination_class = CategoryPaginator
 
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ("name",)
     search_fields = ("name",)
 
     def get_permissions(self):
-        if self.action not in ["list", "retrieve"]:
-            self.permission_classes = (IsSuperuser, IsActive,)
-        else:
+        if self.action in ["list", "retrieve"]:
             self.permission_classes = (IsAuthenticated,)
+        else:
+            self.permission_classes = (IsSuperuser, IsActive,)
         return super().get_permissions()
 
 
@@ -36,6 +36,7 @@ class SupplierListApiView(ListAPIView):
             return Supplier.objects.filter(user=self.request.user)
 
     serializer_class = SupplierSerializer
+    # pagination_class = SupplierPaginator
 
 
 class SupplierDetailApiView(RetrieveAPIView):
