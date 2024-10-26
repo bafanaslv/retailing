@@ -23,7 +23,7 @@ class Country(models.Model):
         verbose_name_plural = "Страны"
 
     def str(self):
-        return f"Страна: {self.name} код: {self.code}"
+        return f"Страна: {self.id} {self.name}"
 
 
 class Supplier(models.Model):
@@ -55,7 +55,7 @@ class Supplier(models.Model):
     city = models.CharField(max_length=100, verbose_name="город")
     street = models.CharField(max_length=100, verbose_name="улица")
     house_number = models.CharField(max_length=10, verbose_name="номер дома")
-    datetime_create = models.DateTimeField(verbose_name="время создания", default=datetime.datetime)
+    created_at = models.DateTimeField(verbose_name="время создания", auto_now_add = True)
 
 
 class Category(models.Model):

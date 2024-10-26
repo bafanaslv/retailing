@@ -7,12 +7,21 @@ class SupplierSerializer(serializers.ModelSerializer):
         model = Supplier
         fields = (
             "id",
-            "username",
+            "name",
+            "type",
             "email",
-            "phone",
-            "is_personal_data",
-            "tg_chat_id",
+            "country",
+            "user",
+            "city",
+            "street",
+            "house_number",
         )
+
+
+class SupplierSerializerReadOnly(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = "__all__"
 
 
 class CategorySerializer(serializers.ModelSerializer):

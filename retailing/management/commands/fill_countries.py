@@ -24,8 +24,8 @@ class Command(BaseCommand):
             countries_for_create.append(
                 Country(
                     sequence,
-                    country["code"],
-                    country["name"],
+                    country["iso_code2"],
+                    country["name_ru"],
                 )
             )
             sequence += 1
