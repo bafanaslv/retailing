@@ -14,6 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "is_personal_data",
             "tg_chat_id",
+            "supplier",
         )
 
 

@@ -47,7 +47,7 @@ class SupplierDetailApiView(RetrieveAPIView):
         if IsSuperuser().has_permission(self.request, self):
             return Supplier.objects.all()
         else:
-            return Supplier.objects.filter(user=self.request.user)
+            return Supplier.objects.filter(pk=self.request.user.supplier_id)
 
     serializer_class = SupplierSerializerReadOnly
     permission_classes = (IsAuthenticated,)
@@ -105,10 +105,12 @@ class SupplierDestroyApiView(DestroyAPIView):
             return Supplier.objects.filter(pk=self.request.user.supplier_id)
 
     def perform_destroy(self, serializer):
-        """Сначала отввязываем от пользователя id компании, затем удалаем саму компанию."""
+        """Сначала отввязываем от пользователей id компании, затем удалаем саму компанию."""
         sup_id = self.request.user.supplier_id
-        self.request.user.supplier_id = None
-        self.request.user.save()
+        user_list = list(Users.objects.filter(supplier_id=sup_id))
+        for user in user_list:
+            user.supplier_id = None
+            user.save()
         Supplier.objects.filter(pk=sup_id).delete()
 
     permission_classes = (IsActive,)
