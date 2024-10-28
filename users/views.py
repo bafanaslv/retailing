@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from stripe.climate import Supplier
 from users.models import Users
-from users.permissions import IsActive, IsSuperuser, IsActiveAndNotIsSuperuser
+from users.permissions import IsActive, IsSuperuser
 from users.serializer import UserSerializer, UserTokenObtainPairSerializer
 
 
@@ -36,8 +36,7 @@ class UserRetrieveAPIView(RetrieveAPIView):
                 raise ValidationError(
                     "Такой сотрудник не зарегистрирован в торговой сети !"
                 )
-
-    permission_classes = [IsActiveAndNotIsSuperuser, ]
+    permission_classes = [IsSuperuser, IsActive,]
 
 
 class UserUpdateAPIView(UpdateAPIView):
@@ -67,7 +66,7 @@ class UserDestroyAPIView(DestroyAPIView):
         lending_object_list = list(Supplier.objects.filter(user=self.request.user.id))
         if len(lending_object_list) > 0:
             raise ValidationError(
-                "Невозможно удалить сотрудника, который пользовался услугами библиотеки !"
+                "Невозможно удалить сотрудника, который является сотрудником торговой сети !"
             )
         else:
             lending_object_list = list(Users.objects.filter(pk=self.kwargs["pk"]))

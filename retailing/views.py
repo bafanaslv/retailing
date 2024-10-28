@@ -42,14 +42,23 @@ class SupplierListApiView(ListAPIView):
 
 
 class SupplierDetailApiView(RetrieveAPIView):
-    pass
+
+    def get_queryset(self):
+        if IsSuperuser().has_permission(self.request, self):
+            return Supplier.objects.all()
+        else:
+            return Supplier.objects.filter(user=self.request.user)
+
+    serializer_class = SupplierSerializerReadOnly
+    permission_classes = (IsAuthenticated,)
 
 
 class SupplierCreateApiView(CreateAPIView):
-    """Создание поставщика. Пользователь может создать только одного поставщика."""
+    """Создание поставщика. Пользователь может создать только одного поставщика. Суперюзер не имеет такого права."""
 
     serializer_class = SupplierSerializer
     queryset = Supplier.objects.all()
+
     def perform_create(self, serializer):
         """Создаем поставщика и заполним у пользователя номер поставщика."""
         if self.request.user.supplier_id is not None:
@@ -64,16 +73,45 @@ class SupplierCreateApiView(CreateAPIView):
         supplier.save()
         self.request.user.supplier_id = supplier.id
         self.request.user.save()
-    # permission_classes = [IsActive,]
     permission_classes = (IsActive, ~IsSuperuser,)
 
 
 class SupplierUpdateApiView(UpdateAPIView):
-    pass
+
+    serializer_class = SupplierSerializer
+
+    def get_queryset(self):
+        if IsSuperuser().has_permission(self.request, self):
+            raise ValidationError(
+                f"У вас недостаточно прав для выполнения данного действия!"
+            )
+        else:
+            return Supplier.objects.filter(pk=self.request.user.supplier_id)
+
+    def perform_update(self, serializer):
+        supplier = serializer.save()
+        supplier.save()
+    permission_classes = (IsActive,)
 
 
 class SupplierDestroyApiView(DestroyAPIView):
-    pass
+
+    def get_queryset(self):
+        if IsSuperuser().has_permission(self.request, self):
+            raise ValidationError(
+                f"У вас недостаточно прав для выполнения данного действия!"
+            )
+        else:
+            return Supplier.objects.filter(pk=self.request.user.supplier_id)
+
+    def perform_destroy(self, serializer):
+        """Сначала отввязываем от пользователя id компании, затем удалаем саму компанию."""
+        sup_id = self.request.user.supplier_id
+        self.request.user.supplier_id = None
+        self.request.user.save()
+        Supplier.objects.filter(pk=sup_id).delete()
+
+    permission_classes = (IsActive,)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -93,5 +131,4 @@ class CategoryViewSet(viewsets.ModelViewSet):
         else:
             self.permission_classes = (IsSuperuser, IsActive,)
         return super().get_permissions()
-
 
