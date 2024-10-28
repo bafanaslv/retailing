@@ -45,6 +45,7 @@ class Supplier(models.Model):
         on_delete=models.PROTECT,
         verbose_name="сотрудник",
         related_name="supplier_user",
+        ** NULLABLE,
     )
     country = models.ForeignKey(
         Country,

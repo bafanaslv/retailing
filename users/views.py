@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 from stripe.climate import Supplier
 from users.models import Users
-from users.permissions import IsActive, IsSuperuser
+from users.permissions import IsActive, IsSuperuser, IsActiveAndNotIsSuperuser
 from users.serializer import UserSerializer, UserTokenObtainPairSerializer
 
 
@@ -37,7 +37,7 @@ class UserRetrieveAPIView(RetrieveAPIView):
                     "Такой сотрудник не зарегистрирован в торговой сети !"
                 )
 
-    permission_classes = [IsSuperuser, IsActive,]
+    permission_classes = [IsActiveAndNotIsSuperuser, ]
 
 
 class UserUpdateAPIView(UpdateAPIView):

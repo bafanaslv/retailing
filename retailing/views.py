@@ -50,7 +50,6 @@ class SupplierCreateApiView(CreateAPIView):
 
     serializer_class = SupplierSerializer
     queryset = Supplier.objects.all()
-
     def perform_create(self, serializer):
         """Создаем поставщика и заполним у пользователя номер поставщика."""
         if self.request.user.supplier_id is not None:
@@ -65,7 +64,8 @@ class SupplierCreateApiView(CreateAPIView):
         supplier.save()
         self.request.user.supplier_id = supplier.id
         self.request.user.save()
-    permission_classes = [IsSuperuser,]
+    # permission_classes = [IsActive,]
+    permission_classes = (IsActive, ~IsSuperuser,)
 
 
 class SupplierUpdateApiView(UpdateAPIView):
