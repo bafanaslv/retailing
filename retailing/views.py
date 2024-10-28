@@ -111,6 +111,7 @@ class SupplierDestroyApiView(DestroyAPIView):
         for user in user_list:
             user.supplier_id = None
             user.save()
+        self.request.user.supplier_id = None
         Supplier.objects.filter(pk=sup_id).delete()
 
     permission_classes = (IsActive,)
