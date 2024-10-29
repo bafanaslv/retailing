@@ -51,4 +51,3 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "release_date",
         )
-

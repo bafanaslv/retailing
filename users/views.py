@@ -9,7 +9,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from retailing.models import Supplier, Product
 from users.models import Users
 from users.permissions import IsActive, IsSuperuser
-from users.serializer import UserSerializer, UserTokenObtainPairSerializer, UserSerializerReadOnly
+from users.serializer import UserSerializer, UserTokenObtainPairSerializer, UserSerializerReadOnly, \
+    UserSerializerForSuperuser
 
 
 class UserListAPIView(ListAPIView):
@@ -25,10 +26,16 @@ class UserRetrieveAPIView(RetrieveAPIView):
         if IsSuperuser().has_permission(self.request, self):
             return Users.objects.all()
         else:
-            if self.kwargs["pk"] != self.request.user.id:
+            print(Users.objects.filter(pk=self.kwargs["pk"]))
+            if len(dict(Users.objects.filter(pk=self.kwargs["pk"]))) == 0:
                 raise ValidationError(
-                    "У вас недостаточно прав для просмотра учетных данных сотрудника !"
+                    "Страница с таким id отсуствует !"
                 )
+            else:
+                if self.kwargs["pk"] != self.request.user.id:
+                    raise ValidationError(
+                        "У вас недостаточно прав для просмотра учетных данных пользователя !"
+                    )
             return Users.objects.filter(pk=self.request.user.id)
     permission_classes = [IsActive,]
 
@@ -38,26 +45,46 @@ class UserUpdateAPIView(UpdateAPIView):
     в торговой сети за определенной компанией. Можно отвязать (supplier_id = None), если это не нарушает целостность БД
     а затем заново привязать к другой компании."""
 
-    serializer_class = UserSerializer
-    queryset = Users.objects.all()
+    def get_queryset(self):
+        if IsSuperuser().has_permission(self.request, self):
+            return Users.objects.all()
+        else:
+            if self.kwargs["pk"] != self.request.user.id:
+                raise ValidationError(
+                    "У вас недостаточно прав для изменения учетных данных пользователя !"
+                )
+            return Users.objects.filter(pk=self.request.user.id)
+
+    def get_serializer_class(self):
+        if IsSuperuser().has_permission(self.request, self):
+            return UserSerializerForSuperuser
+        else:
+            return UserSerializer
 
     def perform_update(self, serializer):
         user_obj = Users.objects.get(pk=self.kwargs["pk"])
         user = serializer.save()
-        if user.supplier is not None and user_obj.supplier is not None and user_obj.supplier_id != user.supplier_id:
-            raise ValidationError(
-                "Невозможно изменить место работы у пользователя зарегистрированного в сети !"
-            )
-
-        if user.supplier is not None:
-            supplier_object = Supplier.objects.get(pk=user.supplier_id)
-            user.supplier_type = supplier_object.type
+        if IsSuperuser().has_permission(self.request, self):
+            if user.is_personal_data:
+                user_obj.is_active = user.is_active
+            else:
+                raise ValidationError(
+                    "Пользователь не дал разрешение на обработку персональных данных !"
+                )
         else:
-            user.supplier_type = None
+            if user.supplier is not None and user_obj.supplier is not None and user_obj.supplier_id != user.supplier_id:
+                raise ValidationError(
+                    "Невозможно изменить место работы у пользователя зарегистрированного в сети !"
+                )
 
-        user.set_password(self.request.data.get("password"))
+            if user.supplier is not None:
+                supplier_object = Supplier.objects.get(pk=user.supplier_id)
+                user.supplier_type = supplier_object.type
+            else:
+                user.supplier_type = None
+            user.set_password(self.request.data.get("password"))
         user.save()
-    permission_classes = [IsSuperuser,]
+    permission_classes = [IsActive,]
 
 
 class UserDestroyAPIView(DestroyAPIView):
@@ -81,12 +108,13 @@ class UserDestroyAPIView(DestroyAPIView):
 
 
 class UserCreateAPIView(CreateAPIView):
-    """При создании нового пользователя можно сразу указать где он работает (user.supplier) и автоматически присвоить
-     тип компании (user.supplier_type)."""
+    """В сети может зарегистироваться любой пользователь, но до проверки и утверждения данных суперпользователем
+    он не является активным (is_active = False) и не имеет никаких прав кроме просмотра разрешенных данных.
+    Сделать активным пользователя можно только если он дал разрешение на обработку персональных данных."""
 
     serializer_class = UserSerializer
     queryset = Users.objects.all()
-    permission_classes = [IsSuperuser,]
+    permission_classes = []
 
     def perform_create(self, serializer):
         user = serializer.save(is_active=True)

@@ -32,26 +32,16 @@ class CountryViewSet(viewsets.ModelViewSet):
 
 
 class SupplierListApiView(ListAPIView):
-    def get_queryset(self):
-        if IsSuperuser().has_permission(self.request, self):
-            return Supplier.objects.all().order_by("id")
-        else:
-            return Supplier.objects.filter(user=self.request.user)
-
+    queryset = Supplier.objects.all().order_by("name")
     serializer_class = SupplierSerializerReadOnly
     # pagination_class = SupplierPaginator
+    permission_classes = (AllowAny,)
 
 
 class SupplierDetailApiView(RetrieveAPIView):
-
-    def get_queryset(self):
-        if IsSuperuser().has_permission(self.request, self):
-            return Supplier.objects.all()
-        else:
-            return Supplier.objects.filter(pk=self.request.user.supplier_id)
-
+    queryset = Supplier.objects.all()
     serializer_class = SupplierSerializerReadOnly
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
 
 
 class SupplierCreateApiView(CreateAPIView):
@@ -123,7 +113,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     """Представление для категорий товаров."""
 
     def get_queryset(self):
-        if Product.objects.filter(category=self.kwargs["pk"]) is not None:
+        if self.action == "destroy" and Product.objects.filter(category=self.kwargs["pk"]) is not None:
             raise ValidationError(
                 "Невозможно удалить категорию - есть зарегистрированные продукты !"
             )
@@ -136,11 +126,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ("name",)
     search_fields = ("name",)
 
-    permission_classes = (IsActive,)
+    permission_classes = (AllowAny,)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
     """Представление для товаров."""
+
+    def get_queryset(self):
+        if self.action in ["update", "retrieve", "destroy"]:
+            return Product.objects.filter(pk=self.kwargs["pk"])
+        else:
+            return Product.objects.all()
 
     def get_serializer_class(self):
         if self.action in ["update", "create"]:
@@ -148,13 +144,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         else:
             return ProductSerializerReadOnly
 
-    def get_queryset(self):
-        if IsSuperuser().has_permission(self.request, self):
-            raise ValidationError(
-                f"У вас недостаточно прав для выполнения данного действия !"
-            )
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.permission_classes = (AllowAny,)
         else:
-            return Product.objects.filter(supplier=self.request.user.supplier_id)
+            self.permission_classes = (IsActive, ~IsSuperuser,)
+        return super().get_permissions()
 
     # pagination_class = ProductPaginator
 
@@ -167,4 +162,3 @@ class ProductViewSet(viewsets.ModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ("name",)
     search_fields = ("name", "category")
-    permission_classes = (IsActive,)
