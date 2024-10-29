@@ -27,9 +27,11 @@ class Country(models.Model):
 
 
 class Supplier(models.Model):
-    """Участниками торговой делятся на три вида: вендоры или производители товаров, дистрибьютеры - крупные оптовые
-     торговцы закупающие товар у вендоров и ритейлеры (мелкие фирмы или индивидуальные предприниматели). На самом деле
-     схема сложнее."""
+    """Участниками торговой сети делятся на три группы (типа): вендоры или производители товаров, дистрибьютеры -
+    крупные оптовые торговцы закупающие товар у вендоров и ритейлеры (мелкие фирмы или индивидуальные предприниматели).
+    На самом деле схема сложнее. Атрибут user заполняется при регистрации поставщика. В это же момент у пользователя
+    заполняется поле supplier_id указывающее, что пользователь является сотрудником компании. На компанию в дальнейшем
+    можно зарегистрировать других пользователей."""
 
     TYPE = [
         ("vendor", "производитель"),
@@ -58,6 +60,9 @@ class Supplier(models.Model):
     house_number = models.CharField(max_length=10, verbose_name="номер дома")
     created_at = models.DateTimeField(verbose_name="время создания", auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.name} - {self.type} {self.country}"
+
 
 class Category(models.Model):
     """Товары электроники как и другие типы товаров могут делиться на разные категории
@@ -67,7 +72,6 @@ class Category(models.Model):
         max_length=100,
         unique=True,
         verbose_name="наименование",
-        help_text="введите наименование категории",
     )
 
     def __str__(self):
@@ -79,6 +83,8 @@ class Category(models.Model):
 
 
 class Product(models.Model):
+    """Справочник продукции. Доступ только для сотрудников заводов изготовителей."""
+
     name = models.CharField(
         max_length=100,
         verbose_name="наименование"
@@ -89,20 +95,20 @@ class Product(models.Model):
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
-        related_name="category",
+        related_name="product_category",
         verbose_name="категория"
     )
-    owner = models.ForeignKey(
+    vendor = models.ForeignKey(
         Supplier,
-        verbose_name='владелец',
         on_delete=models.PROTECT,
-        related_name="owner"
+        related_name="product_vendor",
+        verbose_name='завод производитель'
     )
-    supplier = models.ForeignKey(
-        Supplier,
-        verbose_name='поставщик',
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="supplier_product", **NULLABLE
+        verbose_name="сотрудник",
+        related_name="product_user",
     )
     release_date = models.DateField(verbose_name="дата выхода продукта на рынок")
     view_counter = models.PositiveIntegerField(
@@ -113,6 +119,10 @@ class Product(models.Model):
         upload_to="catalog/media",
         verbose_name="изображение", **NULLABLE
     )
+
+    class Meta:
+        verbose_name = "Продукт"
+        verbose_name_plural = "Продукты"
 
 
 class Payable(models.Model):
@@ -131,4 +141,7 @@ class Payable(models.Model):
         related_name="supplier_payable", **NULLABLE
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="задолженность")
-    id_paid = models.BooleanField(verbose_name="погашена", default=False)
+    is_paid = models.BooleanField(verbose_name="погашена", default=False)
+    created_at = models.DateTimeField(verbose_name="время создания", auto_now_add=True)
+    update_at = models.DateTimeField(verbose_name="время создания", **NULLABLE)
+    paid_date = models.DateField(verbose_name="дата погашения", **NULLABLE)
