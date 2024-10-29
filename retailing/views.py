@@ -4,15 +4,16 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from retailing.models import Supplier, Category, Country
-from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator
-from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly
+from retailing.models import Supplier, Category, Country, Product
+from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator
+from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
+    ProductSerializer, ProductSerializerReadOnly
 from users.models import Users
 from users.permissions import IsSuperuser, IsActive
 
 
 class CountryViewSet(viewsets.ModelViewSet):
-    """Представление для категорий товаров."""
+    """Представление для стран."""
 
     queryset = Country.objects.all().order_by("id")
     serializer_class = CountrySerializer
@@ -72,6 +73,7 @@ class SupplierCreateApiView(CreateAPIView):
         supplier = serializer.save()
         supplier.save()
         self.request.user.supplier_id = supplier.id
+        self.request.user.supplier_type = supplier.type
         self.request.user.save()
     permission_classes = (IsActive, ~IsSuperuser,)
 
@@ -120,7 +122,13 @@ class SupplierDestroyApiView(DestroyAPIView):
 class CategoryViewSet(viewsets.ModelViewSet):
     """Представление для категорий товаров."""
 
-    queryset = Category.objects.all().order_by("id")
+    def get_queryset(self):
+        if Product.objects.filter(category=self.kwargs["pk"]) is not None:
+            raise ValidationError(
+                "Невозможно удалить категорию - есть зарегистрированные продукты !"
+            )
+        return Category.objects.all().order_by("id")
+
     serializer_class = CategorySerializer
     # pagination_class = CategoryPaginator
 
@@ -128,10 +136,35 @@ class CategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ("name",)
     search_fields = ("name",)
 
-    def get_permissions(self):
-        if self.action in ["list", "retrieve"]:
-            self.permission_classes = (IsAuthenticated,)
-        else:
-            self.permission_classes = (IsSuperuser, IsActive,)
-        return super().get_permissions()
+    permission_classes = (IsActive,)
 
+
+class ProductViewSet(viewsets.ModelViewSet):
+    """Представление для товаров."""
+
+    def get_serializer_class(self):
+        if self.action in ["update", "create"]:
+            return ProductSerializer
+        else:
+            return ProductSerializerReadOnly
+
+    def get_queryset(self):
+        if IsSuperuser().has_permission(self.request, self):
+            raise ValidationError(
+                f"У вас недостаточно прав для выполнения данного действия !"
+            )
+        else:
+            return Product.objects.filter(supplier=self.request.user.supplier_id)
+
+    # pagination_class = ProductPaginator
+
+    def perform_create(self, serializer):
+        product = serializer.save()
+        product.user = self.request.user
+        product.supplier = self.request.user.supplier
+        product.save()
+
+    filter_backends = [SearchFilter, OrderingFilter]
+    ordering_fields = ("name",)
+    search_fields = ("name", "category")
+    permission_classes = (IsActive,)

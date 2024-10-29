@@ -12,16 +12,15 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "phone",
-            "is_personal_data",
-            "tg_chat_id",
             "supplier",
+            "supplier_type"
         )
 
 
 class UserSerializerReadOnly(serializers.ModelSerializer):
     class Meta:
         model = Users
-        fields = ("reader_name", "phone")
+        fields = ("id", "username", "email")
 
 
 class UserTokenObtainPairSerializer(TokenObtainPairSerializer):

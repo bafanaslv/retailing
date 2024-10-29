@@ -1,16 +1,14 @@
-import datetime
-
 from django.db import models
 from datetime import date
 
 from config import settings
-# from users.models import Users
 
 NULLABLE = {"blank": True, "null": True}
 
 
 class Country(models.Model):
     """Страна где зарегистрован поставщик товара."""
+
     code = models.CharField(
         max_length=2, unique=True, verbose_name="код страны"
     )
@@ -61,7 +59,7 @@ class Supplier(models.Model):
     created_at = models.DateTimeField(verbose_name="время создания", auto_now_add=True)
 
     def __str__(self):
-        return f"{self.name} - {self.type} {self.country}"
+        return f"Наименование: {self.name}, тип: {self.type}, страна: {self.country}"
 
 
 class Category(models.Model):
@@ -75,7 +73,7 @@ class Category(models.Model):
     )
 
     def __str__(self):
-        return self.name
+        return f"Категория товара: {self.name}"
 
     class Meta:
         verbose_name = "Категория"
@@ -98,17 +96,19 @@ class Product(models.Model):
         related_name="product_category",
         verbose_name="категория"
     )
-    vendor = models.ForeignKey(
+    supplier = models.ForeignKey(
         Supplier,
         on_delete=models.PROTECT,
-        related_name="product_vendor",
-        verbose_name='завод производитель'
+        related_name="product_supplier",
+        verbose_name='завод производитель',
+        ** NULLABLE
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         verbose_name="сотрудник",
         related_name="product_user",
+        **NULLABLE
     )
     release_date = models.DateField(verbose_name="дата выхода продукта на рынок")
     view_counter = models.PositiveIntegerField(
@@ -124,13 +124,17 @@ class Product(models.Model):
         verbose_name = "Продукт"
         verbose_name_plural = "Продукты"
 
+    def __str__(self):
+        return f"Наименование: {self.name}, модель: {self.name}, производитель: {self.supplier}"
+
 
 class Payable(models.Model):
-    """Кредиторская задолженность"""
+    """Задолженность. Могут быть оба вида заолженности, дебиторская (недопоставлен товар) и кредиторская
+     (не заплачены деньги за весь товар или часть товара)."""
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='владелец',
+        verbose_name='должник',
         on_delete=models.PROTECT,
         related_name="owner_payable"
     )
@@ -140,8 +144,15 @@ class Payable(models.Model):
         on_delete=models.PROTECT,
         related_name="supplier_payable", **NULLABLE
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="задолженность")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма задолженности")
+    created_at = models.DateField(verbose_name="дата возникновения", default=date.today)
     is_paid = models.BooleanField(verbose_name="погашена", default=False)
-    created_at = models.DateTimeField(verbose_name="время создания", auto_now_add=True)
-    update_at = models.DateTimeField(verbose_name="время создания", **NULLABLE)
     paid_date = models.DateField(verbose_name="дата погашения", **NULLABLE)
+
+    class Meta:
+        verbose_name = "Задолженность"
+        verbose_name_plural = "Задолженности"
+
+    def __str__(self):
+        return f"Должник: {self.owner}, поставщик: {self.supplier}, сумма задолежности: {self.amount}"
+

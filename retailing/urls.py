@@ -6,7 +6,7 @@ from rest_framework.routers import SimpleRouter
 
 from retailing.apps import RetailingConfig
 from retailing.views import SupplierListApiView, SupplierCreateApiView, SupplierUpdateApiView, SupplierDestroyApiView, \
-    SupplierDetailApiView, CategoryViewSet, CountryViewSet
+    SupplierDetailApiView, CategoryViewSet, CountryViewSet, ProductViewSet
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -25,25 +25,18 @@ app_name = RetailingConfig.name
 
 router_category = SimpleRouter()
 router_category.register("category", CategoryViewSet, basename="category")
+router_product = SimpleRouter()
+router_product.register("product", ProductViewSet, basename="product")
 router_country = SimpleRouter()
 router_country.register("country", CountryViewSet, basename="country")
 
 urlpatterns = [
     path("supplier/", SupplierListApiView.as_view(), name="supplier_list"),
     path("supplier/create/", SupplierCreateApiView.as_view(), name="supplier_create"),
-    path(
-        "supplier/<int:pk>/", SupplierDetailApiView.as_view(), name="supplier_retrieve"
-    ),
-    path(
-        "supplier/update/<int:pk>/",
-        SupplierUpdateApiView.as_view(),
-        name="supplier_update",
-    ),
-    path(
-        "supplier/delete/<int:pk>/",
-        SupplierDestroyApiView.as_view(),
-        name="supplier_delete",
-    ),
+    path("supplier/<int:pk>/", SupplierDetailApiView.as_view(), name="supplier_retrieve"),
+    path("supplier/update/<int:pk>/", SupplierUpdateApiView.as_view(), name="supplier_update"),
+    path("supplier/delete/<int:pk>/", SupplierDestroyApiView.as_view(), name="supplier_delete"),
 ]
 urlpatterns += router_category.urls
+urlpatterns += router_product.urls
 urlpatterns += router_country.urls
