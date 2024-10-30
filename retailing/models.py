@@ -128,13 +128,41 @@ class Product(models.Model):
         return f"Наименование: {self.name}, модель: {self.name}, производитель: {self.supplier}"
 
 
+class Warehouse(models.Model):
+    """Склад (остатки) продукции."""
+
+    owner = models.ForeignKey(
+        Supplier,
+        verbose_name='покупатель',
+        on_delete=models.PROTECT,
+        related_name="owner_warehouse"
+    )
+    product = models.ForeignKey(
+        Product, verbose_name='товар',
+        on_delete=models.PROTECT,
+        related_name="owner_product"
+    )
+    quantity = models.PositiveIntegerField(verbose_name='количество')
+
+    class Meta:
+        verbose_name = "Остаток"
+        verbose_name_plural = "Остатки"
+
+    def __str__(self):
+        return f"Владелец: {self.owner.name}, продукт: {self.product.name}, количество: {self.quantity}"
+
+
+class Order(models.Model):
+    pass
+
+
 class Payable(models.Model):
     """Задолженность. Могут быть оба вида заолженности, дебиторская (недопоставлен товар) и кредиторская
      (не заплачены деньги за весь товар или часть товара)."""
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='должник',
+        verbose_name='покупатель',
         on_delete=models.PROTECT,
         related_name="owner_payable"
     )
@@ -142,7 +170,7 @@ class Payable(models.Model):
         Supplier,
         verbose_name='поставщик',
         on_delete=models.PROTECT,
-        related_name="supplier_payable", **NULLABLE
+        related_name="supplier_payable"
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма задолженности")
     created_at = models.DateField(verbose_name="дата возникновения", default=date.today)

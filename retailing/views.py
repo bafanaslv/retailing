@@ -9,7 +9,7 @@ from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryP
 from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
     ProductSerializer, ProductSerializerReadOnly
 from users.models import Users
-from users.permissions import IsSuperuser, IsActive
+from users.permissions import IsSuperuser, IsActive, IsActiveAndNotSuperuser
 
 
 class CountryViewSet(viewsets.ModelViewSet):
@@ -65,7 +65,7 @@ class SupplierCreateApiView(CreateAPIView):
         self.request.user.supplier_id = supplier.id
         self.request.user.supplier_type = supplier.type
         self.request.user.save()
-    permission_classes = (IsActive, ~IsSuperuser,)
+    permission_classes = (IsActiveAndNotSuperuser,)
 
 
 class SupplierUpdateApiView(UpdateAPIView):
@@ -73,28 +73,18 @@ class SupplierUpdateApiView(UpdateAPIView):
     serializer_class = SupplierSerializer
 
     def get_queryset(self):
-        if IsSuperuser().has_permission(self.request, self):
-            raise ValidationError(
-                f"У вас недостаточно прав для выполнения данного действия!"
-            )
-        else:
-            return Supplier.objects.filter(pk=self.request.user.supplier_id)
+        return Supplier.objects.filter(pk=self.request.user.supplier_id)
 
     def perform_update(self, serializer):
         supplier = serializer.save()
         supplier.save()
-    permission_classes = (IsActive,)
+    permission_classes = (IsActiveAndNotSuperuser,)
 
 
 class SupplierDestroyApiView(DestroyAPIView):
 
     def get_queryset(self):
-        if IsSuperuser().has_permission(self.request, self):
-            raise ValidationError(
-                f"У вас недостаточно прав для выполнения данного действия!"
-            )
-        else:
-            return Supplier.objects.filter(pk=self.request.user.supplier_id)
+        return Supplier.objects.filter(pk=self.request.user.supplier_id)
 
     def perform_destroy(self, serializer):
         """Сначала отввязываем от пользователей id компании, затем удалаем саму компанию."""
@@ -106,7 +96,7 @@ class SupplierDestroyApiView(DestroyAPIView):
         self.request.user.supplier_id = None
         Supplier.objects.filter(pk=sup_id).delete()
 
-    permission_classes = (IsActive,)
+    permission_classes = (IsActiveAndNotSuperuser,)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -148,7 +138,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve"]:
             self.permission_classes = (AllowAny,)
         else:
-            self.permission_classes = (IsActive, ~IsSuperuser,)
+            self.permission_classes = (IsActiveAndNotSuperuser,)
         return super().get_permissions()
 
     # pagination_class = ProductPaginator
@@ -158,6 +148,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         product.user = self.request.user
         product.supplier = self.request.user.supplier
         product.save()
+
+    def retrieve(self, request, *args, **kwargs):
+        """Увеличиваем количество промотров продукта."""
+        obj = self.get_object()
+        obj.view_counter = obj.view_counter + 1
+        obj.save(update_fields=("view_counter", ))
+        return super().retrieve(request, *args, **kwargs)
 
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ("name",)
