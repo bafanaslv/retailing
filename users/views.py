@@ -26,10 +26,9 @@ class UserRetrieveAPIView(RetrieveAPIView):
         if IsSuperuser().has_permission(self.request, self):
             return Users.objects.all()
         else:
-            print(Users.objects.filter(pk=self.kwargs["pk"]))
             if len(dict(Users.objects.filter(pk=self.kwargs["pk"]))) == 0:
                 raise ValidationError(
-                    "Страница с таким id отсуствует !"
+                    "Страница с таким id отсутствует !"
                 )
             else:
                 if self.kwargs["pk"] != self.request.user.id:
@@ -117,7 +116,7 @@ class UserCreateAPIView(CreateAPIView):
     permission_classes = []
 
     def perform_create(self, serializer):
-        user = serializer.save(is_active=True)
+        user = serializer.save(is_active=False)
         user.set_password(self.request.data.get("password"))
         if user.supplier is not None:
             supplier_object = Supplier.objects.get(pk=user.supplier_id)
