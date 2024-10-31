@@ -4,11 +4,11 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from retailing.models import Supplier, Category, Country, Product, Warehouse
+from retailing.models import Supplier, Category, Country, Product, Warehouse, Order
 from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator, \
-    WarehousePaginator
+    WarehousePaginator, OrderPaginator
 from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
-    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer
+    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer, OrderSerializer
 from users.models import Users
 from users.permissions import IsSuperuser, IsActive, IsActiveAndNotSuperuser
 
@@ -186,3 +186,8 @@ class WarehouseViewSet(viewsets.ModelViewSet):
     permission_classes = (IsActiveAndNotSuperuser,)
 
 
+class OrderListApiView(ListAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    # pagination_class = OrderPaginator
+    permission_classes = (IsActiveAndNotSuperuser,)

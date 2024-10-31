@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from retailing.models import Supplier, Category, Country, Product, Warehouse
+from retailing.models import Supplier, Category, Country, Product, Warehouse, Order
 
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -60,3 +60,7 @@ class WarehouseSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = "__all__"

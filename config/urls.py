@@ -5,6 +5,7 @@ from retailing.urls import schema_view
 
 urlpatterns = [
     path("", include("retailing.urls", namespace="supplier")),
+    path("", include("retailing.urls", namespace="order")),
     path("admin/", admin.site.urls),
     path("users/", include("users.urls", namespace="users")),
     path(

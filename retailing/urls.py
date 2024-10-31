@@ -38,6 +38,11 @@ urlpatterns = [
     path("supplier/<int:pk>/", SupplierDetailApiView.as_view(), name="supplier_retrieve"),
     path("supplier/update/<int:pk>/", SupplierUpdateApiView.as_view(), name="supplier_update"),
     path("supplier/delete/<int:pk>/", SupplierDestroyApiView.as_view(), name="supplier_delete"),
+    path("order/", SupplierListApiView.as_view(), name="order_list"),
+    path("order/create/", SupplierCreateApiView.as_view(), name="order_create"),
+    path("order/<int:pk>/", SupplierDetailApiView.as_view(), name="order_retrieve"),
+    path("order/update/<int:pk>/", SupplierUpdateApiView.as_view(), name="order_update"),
+    path("order/delete/<int:pk>/", SupplierDestroyApiView.as_view(), name="order_delete"),
 ]
 urlpatterns += router_category.urls
 urlpatterns += router_product.urls
