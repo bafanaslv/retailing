@@ -152,10 +152,6 @@ class Warehouse(models.Model):
         return f"Владелец: {self.owner.name}, продукт: {self.product.name}, количество: {self.quantity}"
 
 
-class Order(models.Model):
-    pass
-
-
 class Payable(models.Model):
     """Задолженность. Могут быть оба вида заолженности, дебиторская (недопоставлен товар) и кредиторская
      (не заплачены деньги за весь товар или часть товара)."""
@@ -176,6 +172,41 @@ class Payable(models.Model):
     created_at = models.DateField(verbose_name="дата возникновения", default=date.today)
     is_paid = models.BooleanField(verbose_name="погашена", default=False)
     paid_date = models.DateField(verbose_name="дата погашения", **NULLABLE)
+
+    class Meta:
+        verbose_name = "Задолженность"
+        verbose_name_plural = "Задолженности"
+
+    def __str__(self):
+        return f"Должник: {self.owner}, поставщик: {self.supplier}, сумма задолежности: {self.amount}"
+
+
+class Order(models.Model):
+    """Задолженность. Могут быть оба вида заолженности, дебиторская (недопоставлен товар) и кредиторская
+     (не заплачены деньги за весь товар или часть товара)."""
+
+    owner = models.ForeignKey(
+        Supplier,
+        verbose_name='покупатель',
+        on_delete=models.PROTECT,
+        related_name="order_owner"
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        verbose_name='поставщик',
+        on_delete=models.PROTECT,
+        related_name="order_supplier"
+    )
+    product = models.ForeignKey(
+        Product, verbose_name='товар',
+        on_delete=models.PROTECT,
+        related_name="order_product"
+    )
+    quantity = models.PositiveIntegerField(verbose_name="количество")
+    price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="цена")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма покупки", **NULLABLE)
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма оплаты", **NULLABLE)
+    created_at = models.DateField(verbose_name="дата операции", default=date.today)
 
     class Meta:
         verbose_name = "Задолженность"

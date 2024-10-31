@@ -6,7 +6,7 @@ from rest_framework.routers import SimpleRouter
 
 from retailing.apps import RetailingConfig
 from retailing.views import SupplierListApiView, SupplierCreateApiView, SupplierUpdateApiView, SupplierDestroyApiView, \
-    SupplierDetailApiView, CategoryViewSet, CountryViewSet, ProductViewSet
+    SupplierDetailApiView, CategoryViewSet, CountryViewSet, ProductViewSet, WarehouseViewSet
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -29,6 +29,8 @@ router_product = SimpleRouter()
 router_product.register("product", ProductViewSet, basename="product")
 router_country = SimpleRouter()
 router_country.register("country", CountryViewSet, basename="country")
+router_warehouse = SimpleRouter()
+router_warehouse.register("warehouse", WarehouseViewSet, basename="warehouse")
 
 urlpatterns = [
     path("supplier/", SupplierListApiView.as_view(), name="supplier_list"),
@@ -40,3 +42,4 @@ urlpatterns = [
 urlpatterns += router_category.urls
 urlpatterns += router_product.urls
 urlpatterns += router_country.urls
+urlpatterns += router_warehouse.urls

@@ -4,10 +4,11 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from retailing.models import Supplier, Category, Country, Product
-from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator
+from retailing.models import Supplier, Category, Country, Product, Warehouse
+from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator, \
+    WarehousePaginator
 from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
-    ProductSerializer, ProductSerializerReadOnly
+    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer
 from users.models import Users
 from users.permissions import IsSuperuser, IsActive, IsActiveAndNotSuperuser
 
@@ -159,3 +160,29 @@ class ProductViewSet(viewsets.ModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ("name",)
     search_fields = ("name", "category")
+
+
+class WarehouseViewSet(viewsets.ModelViewSet):
+    """Представление для складов товаров. Модель (таблица) заполняется (изменяется) автоматически по мере
+     выполнения операуий покупки товаров у постащиков. Разрешен только просмотр астивными пользователями сети своих
+     товаров (owner = supplier_id)."""
+
+    def get_queryset(self):
+        if self.action in ["list", "retrieve"]:
+            return Warehouse.objects.filter(owner=self.request.user.supplier_id)
+        else:
+            raise ValidationError(
+                "Невозможно создать, изменить и удалить товар на складе, разрешен только просмотр !"
+            )
+
+    def perform_create(self, serializer):
+        raise ValidationError(
+            "Невозможно создать, изменить и удалить товар на складе, разрешен только просмотр !"
+        )
+
+    serializer_class = WarehouseSerializer
+#    pagination_class = WarehousePaginator
+
+    permission_classes = (IsActiveAndNotSuperuser,)
+
+
