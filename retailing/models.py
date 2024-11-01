@@ -133,7 +133,7 @@ class Warehouse(models.Model):
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='покупатель',
+        verbose_name='собстенник',
         on_delete=models.PROTECT,
         related_name="owner_warehouse"
     )
@@ -158,7 +158,7 @@ class Payable(models.Model):
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='покупатель',
+        verbose_name='собственник',
         on_delete=models.PROTECT,
         related_name="owner_payable"
     )
@@ -185,9 +185,15 @@ class Order(models.Model):
     """Задолженность. Могут быть оба вида заолженности, дебиторская (недопоставлен товар) и кредиторская
      (не заплачены деньги за весь товар или часть товара)."""
 
+    OPERATION = [
+        ("addition", "пополнение склада"),
+        ("buying", "покупка"),
+        ("write_off", "списание"),
+    ]
+
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='покупатель',
+        verbose_name='собственник',
         on_delete=models.PROTECT,
         related_name="order_owner"
     )
@@ -202,6 +208,7 @@ class Order(models.Model):
         on_delete=models.PROTECT,
         related_name="order_product"
     )
+    operation = models.CharField(max_length=10, verbose_name='действие', choices=OPERATION)
     quantity = models.PositiveIntegerField(verbose_name="количество")
     price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="цена")
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма покупки", **NULLABLE)

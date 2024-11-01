@@ -191,3 +191,23 @@ class OrderListApiView(ListAPIView):
     serializer_class = OrderSerializer
     # pagination_class = OrderPaginator
     permission_classes = (IsActiveAndNotSuperuser,)
+
+
+class OrderCreateApiView(ListAPIView):
+    pass
+
+
+class OrderDetailApiView(ListAPIView):
+    pass
+
+
+class OrderUpdateApiView(ListAPIView):
+    pass
+
+
+class OrderDestroyApiView(ListAPIView):
+    pass
+
+
+
+
