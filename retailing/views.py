@@ -194,7 +194,10 @@ class OrderListApiView(ListAPIView):
 
 
 class OrderCreateApiView(ListAPIView):
-    pass
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    permission_classes = (IsActiveAndNotSuperuser,)
 
 
 class OrderDetailApiView(ListAPIView):

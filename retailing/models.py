@@ -160,7 +160,8 @@ class Payable(models.Model):
         Supplier,
         verbose_name='собственник',
         on_delete=models.PROTECT,
-        related_name="owner_payable"
+        related_name="owner_payable",
+        ** NULLABLE
     )
     supplier = models.ForeignKey(
         Supplier,
@@ -182,12 +183,13 @@ class Payable(models.Model):
 
 
 class Order(models.Model):
-    """Задолженность. Могут быть оба вида заолженности, дебиторская (недопоставлен товар) и кредиторская
-     (не заплачены деньги за весь товар или часть товара)."""
+    """Операции с продукцией. Операция addition может быть только у завода после отправки произведенной продукции
+    на склад. У остальных участников пополнение склада происходит после попкупки (buying). """
 
     OPERATION = [
         ("addition", "пополнение склада"),
         ("buying", "покупка"),
+        ("return", "возврат"),
         ("write_off", "списание"),
     ]
 
@@ -195,23 +197,32 @@ class Order(models.Model):
         Supplier,
         verbose_name='собственник',
         on_delete=models.PROTECT,
-        related_name="order_owner"
+        related_name="order_owner",
+        **NULLABLE
     )
     supplier = models.ForeignKey(
         Supplier,
         verbose_name='поставщик',
         on_delete=models.PROTECT,
-        related_name="order_supplier"
+        related_name="order_supplier",
+        **NULLABLE
     )
     product = models.ForeignKey(
         Product, verbose_name='товар',
         on_delete=models.PROTECT,
         related_name="order_product"
     )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        verbose_name="сотрудник",
+        related_name="order_user",
+        **NULLABLE
+    )
     operation = models.CharField(max_length=10, verbose_name='действие', choices=OPERATION)
     quantity = models.PositiveIntegerField(verbose_name="количество")
     price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="цена")
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма покупки", **NULLABLE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма продукции", **NULLABLE)
     payment_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма оплаты", **NULLABLE)
     created_at = models.DateField(verbose_name="дата операции", default=date.today)
 
