@@ -2,15 +2,15 @@ from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 
 from retailing.models import Supplier, Category, Country, Product, Warehouse, Order
 from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator, \
     WarehousePaginator, OrderPaginator
 from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
-    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer, OrderSerializer
+    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer, OrderSerializer, OrderSerializerReadOnly
 from users.models import Users
-from users.permissions import IsSuperuser, IsActive, IsActiveAndNotSuperuser
+from users.permissions import IsActiveAndNotSuperuser
 
 
 class CountryViewSet(viewsets.ModelViewSet):
@@ -188,16 +188,50 @@ class WarehouseViewSet(viewsets.ModelViewSet):
 
 class OrderListApiView(ListAPIView):
     queryset = Order.objects.all()
-    serializer_class = OrderSerializer
+    serializer_class = OrderSerializerReadOnly
     # pagination_class = OrderPaginator
     permission_classes = (IsActiveAndNotSuperuser,)
 
 
-class OrderCreateApiView(ListAPIView):
+class OrderCreateApiView(CreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-
     permission_classes = (IsActiveAndNotSuperuser,)
+
+    def perform_create(self, serializer):
+        operation = serializer.validated_data["operation"]
+        order = serializer.save()
+        order.user = self.request.user
+        order.owner = self.request.user.supplier
+        order.amount = order.price*order.quantity
+
+        if operation == "addition" and order.supplier.type != "vendor":
+            raise ValidationError(
+                f"{order.supplier.type.capitalize()} не может пополнить склад готовой продукций, он может только купить у поставщика !"
+            )
+
+        if operation == "buying" and order.owner.type == "distributor" and order.supplier.type != "vendor":
+            raise ValidationError(
+                f"Дистрибьютер может купить товар только у завода производителя !"
+            )
+
+        if operation == "buying" and order.owner.type == "retailer" and order.supplier.type == "retailer":
+            raise ValidationError(
+                f"Ритейлер может купить товар только у завода производителя или дистрибьютера !"
+            )
+
+        order.save()
+        if operation in ["addition", "buying"]:
+            warehouse = list(Warehouse.objects.filter(owner=order.owner.id, product=order.product.id))
+            if len(warehouse) == 1:
+                warehouse[0].quantity += order.quantity
+                warehouse[0].save()
+            else:
+                Warehouse.objects.create(
+                    owner=order.owner,
+                    product=order.product,
+                    quantity=order.quantity
+                )
 
 
 class OrderDetailApiView(ListAPIView):

@@ -57,10 +57,26 @@ class ProductSerializer(serializers.ModelSerializer):
 class WarehouseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Warehouse
+        fields = (
+            "owner",
+            "supplier",
+            "quantity",
+        )
+
+
+class OrderSerializerReadOnly(serializers.ModelSerializer):
+    class Meta:
+        model = Order
         fields = "__all__"
 
 
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = "__all__"
+        fields = (
+            "supplier",
+            "product",
+            "operation",
+            "quantity",
+            "price",
+        )
