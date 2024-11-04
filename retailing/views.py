@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -201,6 +202,14 @@ class OrderCreateApiView(CreateAPIView):
     def perform_create(self, serializer):
         operation = serializer.validated_data["operation"]
         order = serializer.save()
+        if operation != "addition":
+            # проверяем есть ли у поставщика требуемое количество товара
+            warehouse_quantity = Warehouse.objects.filter(owner=self.request.user.supplier, product=order.product).aggregate(Sum("quantity"))
+            if warehouse_quantity["quantity__sum"] is None:
+                raise ValidationError(
+                    f"У поставщика отсутствует требуемый товар !"
+                )
+
         order.user = self.request.user
         order.owner = self.request.user.supplier
         order.amount = order.price*order.quantity
@@ -210,16 +219,20 @@ class OrderCreateApiView(CreateAPIView):
                 f"{order.supplier.type.capitalize()} не может пополнить склад готовой продукций, он может только купить у поставщика !"
             )
 
+        if operation == "buying" and order.supplier.type == "vendor":
+            raise ValidationError(
+                f"{order.supplier.type.capitalize()} может пополнить склад готовой продукций но не может купить !"
+            )
+
         if operation == "buying" and order.owner.type == "distributor" and order.supplier.type != "vendor":
             raise ValidationError(
                 f"Дистрибьютер может купить товар только у завода производителя !"
             )
 
-        if operation == "buying" and order.owner.type == "retailer" and order.supplier.type == "retailer":
+        if operation == "buying" and order.owner.type == "retailer" and order.supplier.type not in ["vendor", "distributor"]:
             raise ValidationError(
                 f"Ритейлер может купить товар только у завода производителя или дистрибьютера !"
             )
-
         order.save()
         if operation in ["addition", "buying"]:
             warehouse = list(Warehouse.objects.filter(owner=order.owner.id, product=order.product.id))
