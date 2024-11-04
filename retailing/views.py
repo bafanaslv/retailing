@@ -226,7 +226,7 @@ class OrderCreateApiView(CreateAPIView):
 
         if operation == "buying" and order.owner.type == "distributor" and order.supplier.type != "vendor":
             raise ValidationError(
-                f"Дистрибьютер может купить товар только у завода производителя !"
+                f"Дистрибьютор может купить товар только у завода производителя !"
             )
 
         if operation == "buying" and order.owner.type == "retailer" and order.supplier.type not in ["vendor", "distributor"]:
