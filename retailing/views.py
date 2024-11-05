@@ -5,7 +5,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import AllowAny
 
-from retailing.models import Supplier, Category, Country, Product, Warehouse, Order
+from retailing.models import Supplier, Category, Country, Product, Warehouse, Order, Payable
 from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator, \
     WarehousePaginator, OrderPaginator
 from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
@@ -195,56 +195,81 @@ class OrderListApiView(ListAPIView):
 
 
 class OrderCreateApiView(CreateAPIView):
-    queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = (IsActiveAndNotSuperuser,)
 
     def perform_create(self, serializer):
         operation = serializer.validated_data["operation"]
-        order = serializer.save()
-        if operation != "addition":
+        supplier = serializer.validated_data["supplier"]
+        if operation == "buying":
             # проверяем есть ли у поставщика требуемое количество товара
-            warehouse_quantity = Warehouse.objects.filter(owner=self.request.user.supplier, product=order.product).aggregate(Sum("quantity"))
+            warehouse_quantity = Warehouse.objects.filter(owner=supplier.pk, product=serializer.validated_data["product"]).aggregate(Sum("quantity"))
             if warehouse_quantity["quantity__sum"] is None:
                 raise ValidationError(
                     f"У поставщика отсутствует требуемый товар !"
                 )
+            if warehouse_quantity["quantity__sum"] < serializer.validated_data["quantity"]:
+                raise ValidationError(
+                    f"У поставщика недостаточно требуемого товара !"
+                )
 
-        order.user = self.request.user
-        order.owner = self.request.user.supplier
-        order.amount = order.price*order.quantity
-
-        if operation == "addition" and order.supplier.type != "vendor":
+        if operation == "addition" and supplier.type != "vendor":
             raise ValidationError(
-                f"{order.supplier.type.capitalize()} не может пополнить склад готовой продукций, он может только купить у поставщика !"
+                f"Пополнить склад готовой продукций может только вендор !"
+            )
+        if operation == "addition" and supplier.type == "vendor" and supplier.pk != self.request.user.supplier_id:
+            raise ValidationError(
+                f"Пополнить склад готовой продукции может только вендор !"
             )
 
-        if operation == "buying" and order.supplier.type == "vendor":
+        if operation == "buying" and self.request.user.supplier_type == "vendor":
             raise ValidationError(
-                f"{order.supplier.type.capitalize()} может пополнить склад готовой продукций но не может купить !"
+                f"Вендор может пополнить склад готовой продукции но не может купить !"
             )
 
-        if operation == "buying" and order.owner.type == "distributor" and order.supplier.type != "vendor":
+        if operation == "buying" and self.request.user.supplier_type == "distributor" and supplier.type != "vendor":
             raise ValidationError(
                 f"Дистрибьютор может купить товар только у завода производителя !"
             )
 
-        if operation == "buying" and order.owner.type == "retailer" and order.supplier.type not in ["vendor", "distributor"]:
+        if operation == "buying" and self.request.user.supplier_type == "retailer" and supplier.type not in ["vendor", "distributor"]:
             raise ValidationError(
                 f"Ритейлер может купить товар только у завода производителя или дистрибьютера !"
             )
+        order = serializer.save()
+        order.user = self.request.user
+        order.owner = self.request.user.supplier
+        order.amount = order.price*order.quantity
         order.save()
         if operation in ["addition", "buying"]:
-            warehouse = list(Warehouse.objects.filter(owner=order.owner.id, product=order.product.id))
-            if len(warehouse) == 1:
-                warehouse[0].quantity += order.quantity
-                warehouse[0].save()
+            # перемещаем купленный товар на остаток покупателя
+            warehouse_owner = list(Warehouse.objects.filter(owner=order.owner.id, product=order.product.id))
+            if len(warehouse_owner) == 1:
+                warehouse_owner[0].quantity += order.quantity
+                warehouse_owner[0].save()
             else:
                 Warehouse.objects.create(
                     owner=order.owner,
                     product=order.product,
                     quantity=order.quantity
                 )
+            # уменьшаем у поставщика остаток товара
+            warehouse_supplier = list(Warehouse.objects.filter(owner=order.supplier, product=order.product))
+            warehouse_supplier[0].quantity -= order.quantity
+            warehouse_supplier[0].save()
+            if order.quantity != order.payment_amount:
+                # Если стоимость товара отличается от оплаченной суммы то разницу записываем в долг поставщику
+                # или покупателю. Если положительная сумма должник покупатель, отрицательная - поставщик.
+                payable = list(Payable.objects.filter(owner=order.owner, supplier=order.supplier))
+                if len(payable) == 1:
+                    payable[0].amount += order.amount - order.payment_amount
+                    payable[0].save()
+                else:
+                    Payable.objects.create(
+                        owner=order.owner,
+                        supplier=order.supplier,
+                        amount=order.amount - order.payment_amount
+                    )
 
 
 class OrderDetailApiView(ListAPIView):

@@ -223,7 +223,7 @@ class Order(models.Model):
     quantity = models.PositiveIntegerField(verbose_name="количество")
     price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="цена")
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма продукции", **NULLABLE)
-    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма оплаты", **NULLABLE)
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма оплаты", default=0)
     created_at = models.DateField(verbose_name="дата операции", default=date.today)
 
     class Meta:
