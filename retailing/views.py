@@ -7,9 +7,10 @@ from rest_framework.permissions import AllowAny
 
 from retailing.models import Supplier, Category, Country, Product, Warehouse, Order, Payable
 from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator, \
-    WarehousePaginator, OrderPaginator
+    WarehousePaginator, OrderPaginator, PayablePaginator
 from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
-    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer, OrderSerializer, OrderSerializerReadOnly
+    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer, OrderSerializer, OrderSerializerReadOnly, \
+    PayableSerializer
 from users.models import Users
 from users.permissions import IsActiveAndNotSuperuser
 
@@ -188,7 +189,9 @@ class WarehouseViewSet(viewsets.ModelViewSet):
 
 
 class OrderListApiView(ListAPIView):
-    queryset = Order.objects.all()
+    def get_queryset(self):
+        return Order.objects.filter(owner=self.request.user.supplier)
+
     serializer_class = OrderSerializerReadOnly
     # pagination_class = OrderPaginator
     permission_classes = (IsActiveAndNotSuperuser,)
@@ -201,25 +204,19 @@ class OrderCreateApiView(CreateAPIView):
     def perform_create(self, serializer):
         operation = serializer.validated_data["operation"]
         supplier = serializer.validated_data["supplier"]
-        if operation == "buying":
-            # проверяем есть ли у поставщика требуемое количество товара
-            warehouse_quantity = Warehouse.objects.filter(owner=supplier.pk, product=serializer.validated_data["product"]).aggregate(Sum("quantity"))
-            if warehouse_quantity["quantity__sum"] is None:
-                raise ValidationError(
-                    f"У поставщика отсутствует требуемый товар !"
-                )
-            if warehouse_quantity["quantity__sum"] < serializer.validated_data["quantity"]:
-                raise ValidationError(
-                    f"У поставщика недостаточно требуемого товара !"
-                )
 
-        if operation == "addition" and supplier.type != "vendor":
+        if operation == "addition" and self.request.user.supplier_type != "vendor":
             raise ValidationError(
                 f"Пополнить склад готовой продукций может только вендор !"
             )
-        if operation == "addition" and supplier.type == "vendor" and supplier.pk != self.request.user.supplier_id:
+        if operation == "addition" and self.request.user.supplier_type == "vendor" and supplier.pk != self.request.user.supplier_id:
             raise ValidationError(
-                f"Пополнить склад готовой продукции может только вендор !"
+                f"Пополнить склад готовой продукции может только сотрудник вендора !"
+            )
+
+        if operation == "buying" and  supplier.pk == self.request.user.supplier_id:
+            raise ValidationError(
+                f"Нельзя купить товар у самого себя !"
             )
 
         if operation == "buying" and self.request.user.supplier_type == "vendor":
@@ -236,6 +233,19 @@ class OrderCreateApiView(CreateAPIView):
             raise ValidationError(
                 f"Ритейлер может купить товар только у завода производителя или дистрибьютера !"
             )
+
+        if operation == "buying":
+            # проверяем есть ли у поставщика требуемое количество товара
+            warehouse_quantity = Warehouse.objects.filter(owner=supplier.pk, product=serializer.validated_data["product"]).aggregate(Sum("quantity"))
+            if warehouse_quantity["quantity__sum"] is None:
+                raise ValidationError(
+                    f"У поставщика отсутствует требуемый товар !"
+                )
+            if warehouse_quantity["quantity__sum"] < serializer.validated_data["quantity"]:
+                raise ValidationError(
+                    f"У поставщика недостаточно требуемого товара !"
+                )
+
         order = serializer.save()
         order.user = self.request.user
         order.owner = self.request.user.supplier
@@ -253,11 +263,13 @@ class OrderCreateApiView(CreateAPIView):
                     product=order.product,
                     quantity=order.quantity
                 )
-            # уменьшаем у поставщика остаток товара
-            warehouse_supplier = list(Warehouse.objects.filter(owner=order.supplier, product=order.product))
-            warehouse_supplier[0].quantity -= order.quantity
-            warehouse_supplier[0].save()
-            if order.quantity != order.payment_amount:
+            if self.request.user.supplier_type != "vendor":
+                # уменьшаем у поставщика остаток товара если это покупка
+                warehouse_supplier = list(Warehouse.objects.filter(owner=order.supplier, product=order.product))
+                warehouse_supplier[0].quantity -= order.quantity
+                warehouse_supplier[0].save()
+
+            if self.request.user.supplier_type != "vendor" and order.quantity != order.payment_amount:
                 # Если стоимость товара отличается от оплаченной суммы то разницу записываем в долг поставщику
                 # или покупателю. Если положительная сумма должник покупатель, отрицательная - поставщик.
                 payable = list(Payable.objects.filter(owner=order.owner, supplier=order.supplier))
@@ -272,17 +284,48 @@ class OrderCreateApiView(CreateAPIView):
                     )
 
 
-class OrderDetailApiView(ListAPIView):
-    pass
+class OrderDetailApiView(RetrieveAPIView):
+    def get_queryset(self):
+        return Order.objects.filter(pk=self.kwargs["pk"], user=self.request.user)
+
+    serializer_class = OrderSerializerReadOnly
+    permission_classes = (IsActiveAndNotSuperuser,)
 
 
-class OrderUpdateApiView(ListAPIView):
-    pass
+class OrderUpdateApiView(UpdateAPIView):
+    def get_queryset(self):
+        raise ValidationError(
+            "Невозможно изменить операцию, разрешены только создание и просмотр !"
+        )
 
 
-class OrderDestroyApiView(ListAPIView):
-    pass
+class OrderDestroyApiView(DestroyAPIView):
+    def get_queryset(self):
+        raise ValidationError(
+            "Невозможно удалить операцию, разрешены только создание и просмотр !"
+        )
 
 
+class PayableViewSet(viewsets.ModelViewSet):
+    """Представление для должников. Модель (таблица) заполняется (изменяется) автоматически по мере
+     выполнения операуий покупки товаров у постащиков. Разрешен только просмотр астивным пользователям сети своих
+     долгов (owner = supplier_id)."""
+
+    def get_queryset(self):
+        if self.action in ["list", "retrieve"]:
+            return Payable.objects.filter(owner=self.request.user.supplier_id)
+        else:
+            raise ValidationError(
+                "Невозможно создать, изменить и удалить задолженность, разрешен только просмотр !"
+            )
+
+    def perform_create(self, serializer):
+        raise ValidationError(
+            "Невозможно создать, изменить и удалить задолженность, разрешен только просмотр !"
+        )
+
+    serializer_class = PayableSerializer
+#    pagination_class = PayablePaginator
+    permission_classes = (IsActiveAndNotSuperuser,)
 
 

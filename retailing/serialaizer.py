@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from retailing.models import Supplier, Category, Country, Product, Warehouse, Order
+from retailing.models import Supplier, Category, Country, Product, Warehouse, Order, Payable
 
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -80,3 +80,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "quantity",
             "price",
         )
+
+
+class PayableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payable
+        fields = "__all__"
