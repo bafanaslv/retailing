@@ -16,7 +16,8 @@ from users.permissions import IsActiveAndNotSuperuser
 
 
 class CountryViewSet(viewsets.ModelViewSet):
-    """Представление для стран."""
+    """Представление для стран. Страны загружаются командой fill_counties из файла counties.json
+    скачанного из интернет ресурса."""
 
     queryset = Country.objects.all().order_by("id")
     serializer_class = CountrySerializer
@@ -48,7 +49,8 @@ class SupplierDetailApiView(RetrieveAPIView):
 
 
 class SupplierCreateApiView(CreateAPIView):
-    """Создание поставщика. Пользователь может создать только одного поставщика. Суперюзер не имеет такого права."""
+    """Создание поставщика. Пользователь может создает поставщика и становится сотрудником у поставщика. Другого
+    поставщика он создать не может, но может других пользоватерелей зарегистрировать в своей компании."""
 
     serializer_class = SupplierSerializer
     queryset = Supplier.objects.all()
@@ -58,7 +60,7 @@ class SupplierCreateApiView(CreateAPIView):
         if self.request.user.supplier_id is not None:
             supplier_object = Supplier.objects.get(pk=self.request.user.supplier_id)
             raise ValidationError(
-                f"Этот сотрудник уже зарегистрировал компанию {supplier_object.name}!"
+                f"Этот сотрудник уже зарегистрировал поставщика {supplier_object.name}!"
             )
 
         supplier = serializer.save()
@@ -72,7 +74,7 @@ class SupplierCreateApiView(CreateAPIView):
 
 
 class SupplierUpdateApiView(UpdateAPIView):
-
+    """Право на изменения только у сотрудника компании поставщика."""
     serializer_class = SupplierSerializer
 
     def get_queryset(self):
@@ -85,12 +87,14 @@ class SupplierUpdateApiView(UpdateAPIView):
 
 
 class SupplierDestroyApiView(DestroyAPIView):
+    """Право на удаление только у сотрудника компании поставщика."""
 
     def get_queryset(self):
         return Supplier.objects.filter(pk=self.request.user.supplier_id)
 
     def perform_destroy(self, serializer):
-        """Сначала отввязываем от пользователей id компании, затем удалаем саму компанию."""
+        """Сначала отвязываем от пользователей id компании, затем удалаем саму компанию если это не нарушает
+        целостность БД (отслеживается on_delete=models.PROTECT)."""
         sup_id = self.request.user.supplier_id
         user_list = list(Users.objects.filter(supplier_id=sup_id))
         for user in user_list:
@@ -198,6 +202,8 @@ class OrderListApiView(ListAPIView):
 
 
 class OrderCreateApiView(CreateAPIView):
+    """Реализованы операции addition - пополнение склада вендором и buying - покупка другими участниками торговой сети"""
+
     serializer_class = OrderSerializer
     permission_classes = (IsActiveAndNotSuperuser,)
 
@@ -231,7 +237,7 @@ class OrderCreateApiView(CreateAPIView):
 
         if operation == "buying" and self.request.user.supplier_type == "retailer" and supplier.type not in ["vendor", "distributor"]:
             raise ValidationError(
-                f"Ритейлер может купить товар только у завода производителя или дистрибьютера !"
+                f"Ритейлер может купить товар только у завода производителя (вендора) или дистрибьютера !"
             )
 
         if operation == "buying":
