@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -130,6 +130,11 @@ class ProductViewSet(viewsets.ModelViewSet):
     """Представление для товаров."""
 
     def get_queryset(self):
+        if self.action == "destroy" and Order.objects.filter(product=self.kwargs["pk"]) is not None:
+            raise ValidationError(
+                f"Невозможно удалить продукт - он находится в обороте !"
+            )
+
         if self.action in ["update", "retrieve", "destroy"]:
             return Product.objects.filter(pk=self.kwargs["pk"])
         else:
@@ -180,11 +185,6 @@ class WarehouseViewSet(viewsets.ModelViewSet):
             raise ValidationError(
                 "Невозможно создать, изменить и удалить товар на складе, разрешен только просмотр !"
             )
-
-    def perform_create(self, serializer):
-        raise ValidationError(
-            "Невозможно создать, изменить и удалить товар на складе, разрешен только просмотр !"
-        )
 
     serializer_class = WarehouseSerializer
 #    pagination_class = WarehousePaginator
@@ -314,21 +314,19 @@ class OrderDestroyApiView(DestroyAPIView):
 
 class PayableViewSet(viewsets.ModelViewSet):
     """Представление для должников. Модель (таблица) заполняется (изменяется) автоматически по мере
-     выполнения операуий покупки товаров у постащиков. Разрешен только просмотр астивным пользователям сети своих
-     долгов (owner = supplier_id)."""
+     выполнения операуий покупки товаров у постащиков. Задолженность может возникнуть как у покупателя, таки и
+     у поставщика. Разрешен только просмотр астивным пользователям сети своих долгов (owner = supplier или
+     supplier = supplier). Удаление или изменение задолженнности из API невозможно. Списание задолженности возможно
+     только с админ-панели."""
 
     def get_queryset(self):
         if self.action in ["list", "retrieve"]:
-            return Payable.objects.filter(owner=self.request.user.supplier_id)
+            # из модели задолженностей выводятся только несписанные задолженности.
+            return Payable.objects.filter(Q(owner=self.request.user.supplier) | Q(supplier=self.request.user.supplier), is_paid=False)
         else:
             raise ValidationError(
                 "Невозможно создать, изменить и удалить задолженность, разрешен только просмотр !"
             )
-
-    def perform_create(self, serializer):
-        raise ValidationError(
-            "Невозможно создать, изменить и удалить задолженность, разрешен только просмотр !"
-        )
 
     serializer_class = PayableSerializer
 #    pagination_class = PayablePaginator

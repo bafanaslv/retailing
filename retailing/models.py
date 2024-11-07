@@ -1,6 +1,5 @@
 from django.db import models
 from datetime import date
-
 from config import settings
 
 NULLABLE = {"blank": True, "null": True}
@@ -133,7 +132,7 @@ class Product(models.Model):
 
 
 class Warehouse(models.Model):
-    """Склад (остатки) продукции."""
+    """Склад запасы товаров (остатки). Доступ только для сотрудников заводов изготовителей (вендоров)."""
 
     owner = models.ForeignKey(
         Supplier,
@@ -158,11 +157,12 @@ class Warehouse(models.Model):
 
 class Payable(models.Model):
     """Задолженность. Могут быть оба вида заолженности, за поставщиком (недопоставлен товар) и покупателем
-     (не заплачены деньги за весь или часть товара)."""
+     (не заплачены деньги за весь или часть товара). Если долг возник за поставщиком, то сумма долга (amount)
+     принимает отрицательное значение."""
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='собственник',
+        verbose_name='покупатель',
         on_delete=models.PROTECT,
         related_name="owner_payable",
         ** NULLABLE
@@ -175,8 +175,8 @@ class Payable(models.Model):
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма задолженности")
     created_at = models.DateField(verbose_name="дата возникновения", default=date.today)
-    is_paid = models.BooleanField(verbose_name="погашена", default=False)
-    paid_date = models.DateField(verbose_name="дата погашения", **NULLABLE)
+    is_paid = models.BooleanField(verbose_name="списана", default=False)
+    paid_date = models.DateField(verbose_name="дата списания", **NULLABLE)
 
     class Meta:
         verbose_name = "Задолженность"

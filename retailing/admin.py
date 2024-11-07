@@ -1,7 +1,5 @@
 from datetime import date
-
 from django.contrib import admin
-
 from retailing.models import Supplier, Payable
 
 
@@ -31,9 +29,8 @@ class PayableAdmin(admin.ModelAdmin):
     actions = ["clear_payable"]
 
     def clear_payable(self, request, queryset):
-        """Админ-действие для погашения задолженности на 0 для выбранных объектов.
-        - queryset: набор объектов, к которым применяется действие.
-        """
-        queryset.update(amount=0, is_paid=True, paid_date=date.today)
+        """Админ-действие для списания задолженности для выбранных объектов."""
+
+        queryset.update(amount=0, is_paid=True, paid_date=date.today())
 
     clear_payable.short_description = "Погасить задолженность перед поставщиком"
