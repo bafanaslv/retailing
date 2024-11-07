@@ -127,7 +127,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-    """Представление для товаров."""
+    """Представление для товаров. Продукт может создавать только сотрудник завода производителя (вендора)."""
 
     def get_queryset(self):
         if self.action == "destroy" and Order.objects.filter(product=self.kwargs["pk"]) is not None:
@@ -156,6 +156,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     # pagination_class = ProductPaginator
 
     def perform_create(self, serializer):
+        if self.action == "create" and self.request.user.supplier_type != "vendor":
+            raise ValidationError(
+                f"Продукт может создавать только представитель вендора !"
+            )
         product = serializer.save()
         product.user = self.request.user
         product.supplier = self.request.user.supplier

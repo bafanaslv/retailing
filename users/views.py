@@ -106,14 +106,6 @@ class UserDestroyAPIView(DestroyAPIView):
             raise ValidationError(
                 "Невозможно удалить пользователя который зарегистрирован в сети за компанией !"
             )
-        elif Product.objects.get(user=self.kwargs["pk"]) is not None:
-            raise ValidationError(
-                "Невозможно удалить пользователя который зарегистрирован в сети (модель проукты) за компанией !"
-            )
-        elif Supplier.objects.get(user=self.kwargs["pk"]) is not None:
-            raise ValidationError(
-                "Невозможно удалить пользователя который зарегистрирован в сети (модель поставщики) за компанией !"
-            )
         return Users.objects.all()
     permission_classes = [IsSuperuser,]
 
