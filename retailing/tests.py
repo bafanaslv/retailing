@@ -17,7 +17,7 @@ class SupplierTestCase(APITestCase):
     """Тестирование CRUD авторов."""
 
     def setUp(self):
-        self.user_vendor = Users.objects.create(
+        self.user = Users.objects.create(
             username="Лукин В.М.",
             email="foxship@yandex.ru",
             password="123qwe",
@@ -26,7 +26,7 @@ class SupplierTestCase(APITestCase):
             is_active="True",
         )
         self.country = Country.objects.create(code="US", name="США")
-        self.client.force_authenticate(user=self.user_vendor)
+        self.client.force_authenticate(user=self.user)
 
     def test_supplier_create(self):
         url = reverse("retailing:supplier_create")
@@ -43,8 +43,8 @@ class SupplierTestCase(APITestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Supplier.objects.all().count(), 1)
-        self.assertEqual(self.user_vendor.supplier_id, 2)
-        self.assertEqual(Supplier.objects.get(pk=2).user_id, self.user_vendor.pk)
+        self.assertEqual(self.user.supplier_id, 4)
+        self.assertEqual(Supplier.objects.get(pk=4).user_id, self.user.pk)
 
     def test_supplier_list(self):
         url = reverse("retailing:supplier_list")
@@ -65,7 +65,7 @@ class SupplierTestCase(APITestCase):
         }
         self.client.post(url_create, data)
 
-        url = reverse("retailing:supplier_retrieve", args=(self.user_vendor.supplier_id,))
+        url = reverse("retailing:supplier_retrieve", args=(self.user.supplier_id,))
         response = self.client.get(url)
         data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -85,7 +85,7 @@ class SupplierTestCase(APITestCase):
         }
         self.client.post(url_create, data)
 
-        url = reverse("retailing:supplier_update", args=(self.user_vendor.supplier_id,))
+        url = reverse("retailing:supplier_update", args=(self.user.supplier_id,))
         data = {
             "type": "distributor",
         }
@@ -108,7 +108,7 @@ class SupplierTestCase(APITestCase):
         }
         self.client.post(url_create, data)
 
-        url = reverse("retailing:supplier_delete", args=(self.user_vendor.supplier_id,))
+        url = reverse("retailing:supplier_delete", args=(self.user.supplier_id,))
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Supplier.objects.all().count(), 0)
@@ -150,7 +150,7 @@ class OrderTestCase(APITestCase):
             release_date="2024-10-01"
         )
 
-    def test_order_create(self):
+    def test_order_create_vendor(self):
         url = reverse("retailing:order_create")
         data = {
             "owner": self.user.supplier_id,
@@ -162,7 +162,6 @@ class OrderTestCase(APITestCase):
             "price": 45000.00,
         }
         response = self.client.post(url, data)
-        print(response.json())
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Order.objects.all().count(), 1)
@@ -178,6 +177,7 @@ class OrderTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Order.objects.get(pk=1).owner_id, self.user.supplier_id)
 
+    def test_order_create_distributor(self):
         self.user = Users.objects.create(
             username="Бояджи С.В.",
             email="sveta@yandex.ru",
@@ -200,3 +200,20 @@ class OrderTestCase(APITestCase):
         )
         self.user.supplier_id = self.supplier.pk
         self.user.supplier_type = self.supplier.type
+
+        url = reverse("retailing:order_create")
+        data = {
+            "owner": self.user.supplier_id,
+            "supplier": 1,
+            "product": self.product.pk,
+            "operation": "buying",
+            "user": self.user.pk,
+            "quantity": 3,
+            "price": 45000.00,
+        }
+        print(data)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Order.objects.all().count(), 1)
+        self.assertEqual(Warehouse.objects.all().count(), 1)
+        self.assertEqual(Payable.objects.all().count(), 1)
