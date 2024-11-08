@@ -3,7 +3,6 @@
 # крайней их простоты и примитивности. Также не создавались тести на модели склад (Warehouse) и задолженности (Payable),
 # поскольку в них хранится производная и динамическая информация при выполнении функций API над моделью операции (Order).
 # API для них создавались только для просмотра.
-from decimal import Decimal
 
 from django.urls import reverse
 from rest_framework import status
@@ -43,8 +42,8 @@ class SupplierTestCase(APITestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Supplier.objects.all().count(), 1)
-        self.assertEqual(self.user.supplier_id, 4)
-        self.assertEqual(Supplier.objects.get(pk=4).user_id, self.user.pk)
+        self.assertEqual(self.user.supplier_id, 3)
+        self.assertEqual(Supplier.objects.get(pk=3).user_id, self.user.pk)
 
     def test_supplier_list(self):
         url = reverse("retailing:supplier_list")
@@ -114,7 +113,7 @@ class SupplierTestCase(APITestCase):
         self.assertEqual(Supplier.objects.all().count(), 0)
 
 
-class OrderTestCase(APITestCase):
+class OrderTestCaseAddition(APITestCase):
     """Тестирование CRUD авторов."""
 
     def setUp(self):
@@ -177,7 +176,10 @@ class OrderTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Order.objects.get(pk=1).owner_id, self.user.supplier_id)
 
-    def test_order_create_distributor(self):
+
+class OrderTestCaseBuying(APITestCase):
+    """Тестирование CRUD авторов."""
+    def setUp(self):
         self.user = Users.objects.create(
             username="Бояджи С.В.",
             email="sveta@yandex.ru",
@@ -186,8 +188,9 @@ class OrderTestCase(APITestCase):
             is_personal_data="True",
             is_active="True",
         )
+        self.country = Country.objects.create(code="US", name="США")
+        self.category = Category.objects.create(name="Телевизоры")
         self.client.force_authenticate(user=self.user)
-
         self.supplier = Supplier.objects.create(
             name="Sumsung Corporation",
             type="distributor",
@@ -198,6 +201,16 @@ class OrderTestCase(APITestCase):
             house_number=4,
             user_id=self.user.pk
         )
+        self.product = Product.objects.create(
+            name="Sony",
+            model="Bravia",
+            category_id=self.category.pk,
+            user_id=self.user.pk,
+            supplier_id=self.supplier.pk,
+            release_date="2024-10-01"
+        )
+
+    def test_order_create_distributor(self):
         self.user.supplier_id = self.supplier.pk
         self.user.supplier_type = self.supplier.type
 
@@ -211,7 +224,6 @@ class OrderTestCase(APITestCase):
             "quantity": 3,
             "price": 45000.00,
         }
-        print(data)
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Order.objects.all().count(), 1)

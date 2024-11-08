@@ -273,6 +273,7 @@ class OrderCreateApiView(CreateAPIView):
                     product=order.product,
                     quantity=order.quantity
                 )
+            print(self.request.user.username)
             if self.request.user.supplier_type != "vendor":
                 # уменьшаем у поставщика остаток товара если это покупка
                 warehouse_supplier = list(Warehouse.objects.filter(owner=order.supplier, product=order.product))
@@ -280,6 +281,7 @@ class OrderCreateApiView(CreateAPIView):
                 warehouse_supplier[0].save()
 
             if self.request.user.supplier_type != "vendor" and order.quantity != order.payment_amount:
+                print(333333333333333333333)
                 # Если стоимость товара отличается от оплаченной суммы то разницу записываем в долг поставщику
                 # или покупателю. Если положительная сумма должник покупатель, отрицательная - поставщик.
                 payable = list(Payable.objects.filter(owner=order.owner, supplier=order.supplier))
