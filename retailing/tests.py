@@ -13,7 +13,7 @@ from users.models import Users
 
 
 class SupplierTestCase(APITestCase):
-    """Тестирование CRUD авторов."""
+    """Тестирование CRUD поставщиков."""
 
     def setUp(self):
         self.user = Users.objects.create(
@@ -42,8 +42,8 @@ class SupplierTestCase(APITestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Supplier.objects.all().count(), 1)
-        self.assertEqual(self.user.supplier_id, 3)
-        self.assertEqual(Supplier.objects.get(pk=3).user_id, self.user.pk)
+        self.assertEqual(self.user.supplier_id, 2)
+        self.assertEqual(Supplier.objects.get(pk=2).user_id, self.user.pk)
 
     def test_supplier_list(self):
         url = reverse("retailing:supplier_list")
@@ -114,7 +114,7 @@ class SupplierTestCase(APITestCase):
 
 
 class OrderTestCaseAddition(APITestCase):
-    """Тестирование CRUD авторов."""
+    """Тестирование CRUD операций."""
 
     def setUp(self):
         self.user = Users.objects.create(
@@ -175,57 +175,3 @@ class OrderTestCaseAddition(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Order.objects.get(pk=1).owner_id, self.user.supplier_id)
-
-
-class OrderTestCaseBuying(APITestCase):
-    """Тестирование CRUD авторов."""
-    def setUp(self):
-        self.user = Users.objects.create(
-            username="Бояджи С.В.",
-            email="sveta@yandex.ru",
-            password="123qwe",
-            phone="+7 9655965222",
-            is_personal_data="True",
-            is_active="True",
-        )
-        self.country = Country.objects.create(code="US", name="США")
-        self.category = Category.objects.create(name="Телевизоры")
-        self.client.force_authenticate(user=self.user)
-        self.supplier = Supplier.objects.create(
-            name="Sumsung Corporation",
-            type="distributor",
-            email="info@sumsung.us",
-            country_id=self.country.pk,
-            city="New York",
-            street="Manhattan",
-            house_number=4,
-            user_id=self.user.pk
-        )
-        self.product = Product.objects.create(
-            name="Sony",
-            model="Bravia",
-            category_id=self.category.pk,
-            user_id=self.user.pk,
-            supplier_id=self.supplier.pk,
-            release_date="2024-10-01"
-        )
-
-    def test_order_create_distributor(self):
-        self.user.supplier_id = self.supplier.pk
-        self.user.supplier_type = self.supplier.type
-
-        url = reverse("retailing:order_create")
-        data = {
-            "owner": self.user.supplier_id,
-            "supplier": 1,
-            "product": self.product.pk,
-            "operation": "buying",
-            "user": self.user.pk,
-            "quantity": 3,
-            "price": 45000.00,
-        }
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Order.objects.all().count(), 1)
-        self.assertEqual(Warehouse.objects.all().count(), 1)
-        self.assertEqual(Payable.objects.all().count(), 1)

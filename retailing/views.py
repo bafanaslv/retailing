@@ -273,7 +273,6 @@ class OrderCreateApiView(CreateAPIView):
                     product=order.product,
                     quantity=order.quantity
                 )
-            print(self.request.user.username)
             if self.request.user.supplier_type != "vendor":
                 # уменьшаем у поставщика остаток товара если это покупка
                 warehouse_supplier = list(Warehouse.objects.filter(owner=order.supplier, product=order.product))
