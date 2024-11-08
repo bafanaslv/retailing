@@ -51,23 +51,48 @@ class SupplierTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_supplier_retrieve(self):
-        print(self.user_vendor.supplier_id)
-        url = reverse("retailing:supplier_retrieve", args=(self.user_vendor.pk,))
+        url_create = reverse("retailing:supplier_create")
+        data = {
+            "id": 1,
+            "name": "Sony Corporation",
+            "type": "vendor",
+            "email": "info@sony.us",
+            "country": self.country.pk,
+            "city": "New York",
+            "street": "Manhattan",
+            "house_number": 4
+        }
+        self.client.post(url_create, data)
+
+        url = reverse("retailing:supplier_retrieve", args=(self.user_vendor.supplier_id,))
         response = self.client.get(url)
         data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(data.get("name"), "Sony Corporation")
 
-#     def test_author_update(self):
-#         url = reverse("authors-detail", args=(self.author.pk,))
-#         data = {
-#             "author": "Марк Твен",
-#         }
-#         response = self.client.patch(url, data)
-#         data = response.json()
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(data.get("author"), "Марк Твен")
-#
+    def test_supplier_update(self):
+        url_create = reverse("retailing:supplier_create")
+        data = {
+            "id": 1,
+            "name": "Sony Corporation",
+            "type": "vendor",
+            "email": "info@sony.us",
+            "country": self.country.pk,
+            "city": "New York",
+            "street": "Manhattan",
+            "house_number": 4
+        }
+        self.client.post(url_create, data)
+
+        url = reverse("retailing:supplier_update", args=(self.user_vendor.supplier_id,))
+        data = {
+            "vendor": "Марк Твен",
+        }
+        response = self.client.patch(url, data)
+        data = response.json()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data.get("author"), "Марк Твен")
+
 #     def test_author_delete(self):
 #         url = reverse("authors-detail", args=(self.author.pk,))
 #         response = self.client.delete(url)
