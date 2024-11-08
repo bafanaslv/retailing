@@ -29,14 +29,14 @@
 
 1. **Клонируйте репозиторий**
 
-    git clone https://github.com/bafanaslv/retailing.git
+- git clone https://github.com/bafanaslv/retailing.git
 
 2. **Установите зависимости**
-    Виртуальное окружение и зависимости создаются с помощью poetry.
+- Виртуальное окружение и зависимости создаются с помощью poetry.
    
 3. **Примените миграции базы данных**
-    python manage.py makemigrations
-    python manage.py migrate
+- python manage.py makemigrations
+- python manage.py migrate
 
 4. **Создайте суперпользователя**
     python manage.py csu
