@@ -32,17 +32,17 @@
    - git clone https://github.com/bafanaslv/retailing.git
 
 2. **Установите зависимости**
-- Виртуальное окружение и зависимости создаются с помощью poetry.
+   - Виртуальное окружение и зависимости создаются с помощью poetry.
    
 3. **Примените миграции базы данных**
-- python manage.py makemigrations
-- python manage.py migrate
+   - python manage.py makemigrations
+   - python manage.py migrate
 
 4. **Создайте суперпользователя**
-    python manage.py csu
+    - python manage.py csu
 
 5. **Запустите сервер разработки**
-    python manage.py runserver
+    - python manage.py runserver
 
 6. **Для запуска тестов выполните команду:**
-    coverage run --source='.' manage.py test
+    - coverage run --source='.' manage.py test
