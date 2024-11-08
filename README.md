@@ -29,7 +29,7 @@
 
 1. **Клонируйте репозиторий**
 
-- git clone https://github.com/bafanaslv/retailing.git
+   - git clone https://github.com/bafanaslv/retailing.git
 
 2. **Установите зависимости**
 - Виртуальное окружение и зависимости создаются с помощью poetry.
