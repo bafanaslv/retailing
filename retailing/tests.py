@@ -3,12 +3,13 @@
 # крайней их простоты и примитивности. Также не создавались тести на модели склад (Warehouse) и задолженности (Payable),
 # поскольку в них хранится производная и динамическая информация при выполнении функций API над моделью операции (Order).
 # API для них создавались только для просмотра.
+from decimal import Decimal
 
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from retailing.models import Supplier, Order, Product, Category, Country
+from retailing.models import Supplier, Order, Product, Category, Country, Warehouse, Payable
 from users.models import Users
 
 
@@ -42,8 +43,8 @@ class SupplierTestCase(APITestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Supplier.objects.all().count(), 1)
-        self.assertEqual(self.user_vendor.supplier_id, 1)
-        self.assertEqual(Supplier.objects.get(pk=1).user_id, self.user_vendor.pk)
+        self.assertEqual(self.user_vendor.supplier_id, 2)
+        self.assertEqual(Supplier.objects.get(pk=2).user_id, self.user_vendor.pk)
 
     def test_supplier_list(self):
         url = reverse("retailing:supplier_list")
@@ -86,367 +87,116 @@ class SupplierTestCase(APITestCase):
 
         url = reverse("retailing:supplier_update", args=(self.user_vendor.supplier_id,))
         data = {
-            "vendor": "Марк Твен",
+            "type": "distributor",
         }
         response = self.client.patch(url, data)
         data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(data.get("author"), "Марк Твен")
+        self.assertEqual(data.get("type"), "distributor")
 
-#     def test_author_delete(self):
-#         url = reverse("authors-detail", args=(self.author.pk,))
-#         response = self.client.delete(url)
-#         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-#         self.assertEqual(Books.objects.all().count(), 0)
-#
-#
-# class OrderTestCase(APITestCase):
-#     """Тестирование CRUD авторов."""
-#
-#     def setUp(self):
-#         self.user = Users.objects.create(
-#             email="ivc@yandex.ru",
-#             password="123qwe",
-#             is_superuser=True,
-#         )
-#         self.country = Country.objects.create(code="RU", name="Российская Федерация")
-#         self.category = Category.objects.create(name="Телевизоры")
-#         self.supplier = Supplier.objects.create(name="")
-#         self.product = Product.objects.create(name="Sony", model="Bravia", category_id=self.category.pk, release_date="2024-10-01")
-#         self.client.force_authenticate(user=self.user)
-#
-#     def test_books_list(self):
-#         url = reverse("books-list")
-#         response = self.client.get(url)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#
-#     def test_book_retrieve(self):
-#         url = reverse("books-detail", args=(self.book.pk,))
-#         response = self.client.get(url)
-#         # print(response.json())
-#         data = response.json()
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(data.get("name"), self.book.name)
-#
-#     def test_book_create(self):
-#         url = reverse("books-list")
-#         data = {
-#             "name": "Костер",
-#             "genre": "story",
-#             "author": self.author.pk,
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Books.objects.all().count(), 2)
-#
-#     def test_book_update(self):
-#         url = reverse("books-detail", args=(self.book.pk,))
-#         data = {
-#             "name": "Костер",
-#             "genre": "story",
-#         }
-#         response = self.client.patch(url, data)
-#         data = response.json()
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(data.get("name"), "Костер")
-#
-#     def test_course_delete(self):
-#         url = reverse("books-detail", args=(self.book.pk,))
-#         response = self.client.delete(url)
-#         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-#         self.assertEqual(Books.objects.all().count(), 0)
-#
-#
-# class LibraryCreateTestCase(APITestCase):
-#     """Тестирование работы библиотеки."""
-#
-#     def setUp(self):
-#         self.user = Users.objects.create(
-#             email="ivc@yandex.ru",
-#             password="123qwe",
-#             is_superuser=True,
-#         )
-#         group = Group.objects.create(name="librarian")
-#         group.user_set.add(self.user)
-#         self.author = Authors.objects.create(author="Джек Лондон")
-#         self.book = Books.objects.create(
-#             name="Любовь к жизни",
-#             genre="story",
-#             barcode="1111111111",
-#             author=self.author,
-#         )
-#         self.lending = Lending.objects.create(
-#             user=self.user,
-#             book=self.book,
-#             operation="arrival",
-#             arrival_quantity=2,
-#         )
-#         self.client.force_authenticate(user=self.user)
-#
-#     def test_lending_list(self):
-#         url = reverse("library:lending_list")
-#         response = self.client.get(url)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#
-#     def test_lending_retrieve(self):
-#         url = reverse("library:lending_retrieve", args=(self.lending.pk,))
-#         response = self.client.get(url)
-#         # print(response.json())
-#         data = response.json()
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(data.get("operation"), self.lending.operation)
-#
-#     def test_lending_create_arrival(self):
-#         """Тест поступления партии книги в библиотеку."""
-#         url = reverse("library:lending_create")
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "arrival",
-#             "arrival_quantity": 1,
-#         }
-#         response = self.client.post(url, data)
-#         # print(response.json())
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Lending.objects.all().count(), 2)
-#
-#     def test_lending_create_issuance(self):
-#         """Тест выдачи книги читателю."""
-#         url = reverse("library:lending_create")
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "arrival",
-#             "arrival_quantity": 1,
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "issuance",
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Lending.objects.all().count(), 3)
-#
-#     def test_lending_create_return(self):
-#         """Тест возврата книги в библиотеку."""
-#         url = reverse("library:lending_create")
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "arrival",
-#             "arrival_quantity": 1,
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "issuance",
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "return",
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Lending.objects.all().count(), 4)
-#
-#     def test_lending_create_loss(self):
-#         """Тест утери выданной читателю книги."""
-#         url = reverse("library:lending_create")
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "arrival",
-#             "arrival_quantity": 1,
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "issuance",
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "loss",
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Lending.objects.all().count(), 4)
-#
-#     def test_lending_create_write_off(self):
-#         """Тест списания физически изношенной книги."""
-#         url = reverse("library:lending_create")
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "arrival",
-#             "arrival_quantity": 1,
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         data = {
-#             "user": self.user.pk,
-#             "book": self.book.pk,
-#             "operation": "write_off",
-#         }
-#         response = self.client.post(url, data)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Lending.objects.all().count(), 3)
-#
-#     class LibraryDeleteTestCase(APITestCase):
-#         """Тестирование работы библиотеки (отмена операций)."""
-#
-#         def setUp(self):
-#             self.user = Users.objects.create(
-#                 email="ivc@yandex.ru",
-#                 password="123qwe",
-#                 is_superuser=True,
-#             )
-#             group = Group.objects.create(name="librarian")
-#             group.user_set.add(self.user)
-#             self.author = Authors.objects.create(author="Джек Лондон")
-#             self.book = Books.objects.create(
-#                 name="Любовь к жизни",
-#                 genre="story",
-#                 barcode="1111111111",
-#                 author=self.author,
-#             )
-#             self.lending = Lending.objects.create(
-#                 user=self.user,
-#                 book=self.book,
-#                 operation="arrival",
-#                 arrival_quantity=2,
-#             )
-#             self.client.force_authenticate(user=self.user)
-#
-#         def test_lending_arrival_delete(self):
-#             """Тест отмены поступления партии книги в библиотеку."""
-#             url = reverse("library:lending_create")
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "arrival",
-#                 "arrival_quantity": 1,
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#             url = reverse("library:lending_delete", args=(self.lending.pk,))
-#             response = self.client.delete(url)
-#             # print(response.json())
-#             self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-#             self.assertEqual(Lending.objects.all().count(), 1)
-#
-#         def test_lending_issuance_delete(self):
-#             """Тест выдачи книги читателю."""
-#             url = reverse("library:lending_create")
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "issuance",
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#             url = reverse("library:lending_delete", args=(self.lending.pk,))
-#             response = self.client.delete(url)
-#             # print(response.json())
-#             self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-#             self.assertEqual(Lending.objects.all().count(), 1)
-#
-#         def test_lending_return_delete(self):
-#             """Тест отмены возврата книги."""
-#             url = reverse("library:lending_create")
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "issuance",
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "return",
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 3)
-#
-#             url = reverse("library:lending_delete", args=(self.lending.pk,))
-#             response = self.client.delete(url)
-#             # print(response.json())
-#             self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#         def test_lending_loss_delete(self):
-#             """Тест отмены утери книги."""
-#             url = reverse("library:lending_create")
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "issuance",
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "loss",
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 3)
-#
-#             url = reverse("library:lending_delete", args=(self.lending.pk,))
-#             response = self.client.delete(url)
-#             # print(response.json())
-#             self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#         def test_lending_loss_write_off(self):
-#             """Тест списания утерянной книги."""
-#             url = reverse("library:lending_create")
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "issuance",
-#             }
-#             response = self.client.post(url, data)
-#             lending_pk = self.lending.pk  # запоминаем id выдачи книги
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 2)
-#
-#             data = {
-#                 "user": self.user.pk,
-#                 "book": self.book.pk,
-#                 "operation": "loss",
-#             }
-#             response = self.client.post(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#             self.assertEqual(Lending.objects.all().count(), 3)
-#
-#             url = reverse(
-#                 "library:lending_update", args=(lending_pk,)
-#             )  #  эндпоинт выданной книги для пометки о списании
-#             data = {"is_write_off": "true"}
-#             response = self.client.patch(url, data)
-#             self.assertEqual(response.status_code, status.HTTP_200_OK)
-#             self.assertEqual(data.get("is_write_off"), "true")
+    def test_supplier_delete(self):
+        url_create = reverse("retailing:supplier_create")
+        data = {
+            "id": 1,
+            "name": "Sony Corporation",
+            "type": "vendor",
+            "email": "info@sony.us",
+            "country": self.country.pk,
+            "city": "New York",
+            "street": "Manhattan",
+            "house_number": 4
+        }
+        self.client.post(url_create, data)
+
+        url = reverse("retailing:supplier_delete", args=(self.user_vendor.supplier_id,))
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Supplier.objects.all().count(), 0)
+
+
+class OrderTestCase(APITestCase):
+    """Тестирование CRUD авторов."""
+
+    def setUp(self):
+        self.user = Users.objects.create(
+            username="Лукин В.М.",
+            email="foxship@yandex.ru",
+            password="123qwe",
+            phone="+7 9655965111",
+            is_personal_data="True",
+            is_active="True",
+        )
+        self.country = Country.objects.create(code="US", name="США")
+        self.category = Category.objects.create(name="Телевизоры")
+        self.client.force_authenticate(user=self.user)
+        self.supplier = Supplier.objects.create(
+            name="Sony Corporation",
+            type="vendor",
+            email="info@sony.us",
+            country_id=self.country.pk,
+            city="New York",
+            street="Manhattan",
+            house_number=4,
+            user_id=self.user.pk
+        )
+        self.user.supplier_id = self.supplier.pk
+        self.user.supplier_type = self.supplier.type
+        self.product = Product.objects.create(
+            name="Sony",
+            model="Bravia",
+            category_id=self.category.pk,
+            user_id=self.user.pk,
+            supplier_id=self.supplier.pk,
+            release_date="2024-10-01"
+        )
+
+    def test_order_create(self):
+        url = reverse("retailing:order_create")
+        data = {
+            "owner": self.user.supplier_id,
+            "supplier": self.supplier.pk,
+            "product": self.product.pk,
+            "operation": "addition",
+            "user": self.user.pk,
+            "quantity": 5,
+            "price": 45000.00,
+        }
+        response = self.client.post(url, data)
+        print(response.json())
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Order.objects.all().count(), 1)
+        self.assertEqual(Warehouse.objects.all().count(), 1)
+        self.assertEqual(Payable.objects.all().count(), 0)
+
+        url = reverse("retailing:order_list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        url = reverse("retailing:order_retrieve", args=(1,))
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Order.objects.get(pk=1).owner_id, self.user.supplier_id)
+
+        self.user = Users.objects.create(
+            username="Бояджи С.В.",
+            email="sveta@yandex.ru",
+            password="123qwe",
+            phone="+7 9655965222",
+            is_personal_data="True",
+            is_active="True",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        self.supplier = Supplier.objects.create(
+            name="Sumsung Corporation",
+            type="distributor",
+            email="info@sumsung.us",
+            country_id=self.country.pk,
+            city="New York",
+            street="Manhattan",
+            house_number=4,
+            user_id=self.user.pk
+        )
+        self.user.supplier_id = self.supplier.pk
+        self.user.supplier_type = self.supplier.type
