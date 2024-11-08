@@ -5,9 +5,14 @@ from rest_framework import permissions
 from rest_framework.routers import SimpleRouter
 
 from retailing.apps import RetailingConfig
-from retailing.views import SupplierListApiView, SupplierCreateApiView, SupplierUpdateApiView, SupplierDestroyApiView, \
-    SupplierDetailApiView, CategoryViewSet, CountryViewSet, ProductViewSet, WarehouseViewSet, OrderListApiView, \
-    OrderDetailApiView, OrderCreateApiView, OrderUpdateApiView, OrderDestroyApiView, PayableViewSet
+from retailing.views import (CategoryViewSet, CountryViewSet,
+                             OrderCreateApiView, OrderDestroyApiView,
+                             OrderDetailApiView, OrderListApiView,
+                             OrderUpdateApiView, PayableViewSet,
+                             ProductViewSet, SupplierCreateApiView,
+                             SupplierDestroyApiView, SupplierDetailApiView,
+                             SupplierListApiView, SupplierUpdateApiView,
+                             WarehouseViewSet)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -38,9 +43,19 @@ router_payable.register("payable", PayableViewSet, basename="payable")
 urlpatterns = [
     path("supplier/", SupplierListApiView.as_view(), name="supplier_list"),
     path("supplier/create/", SupplierCreateApiView.as_view(), name="supplier_create"),
-    path("supplier/<int:pk>/", SupplierDetailApiView.as_view(), name="supplier_retrieve"),
-    path("supplier/update/<int:pk>/", SupplierUpdateApiView.as_view(), name="supplier_update"),
-    path("supplier/delete/<int:pk>/", SupplierDestroyApiView.as_view(), name="supplier_delete"),
+    path(
+        "supplier/<int:pk>/", SupplierDetailApiView.as_view(), name="supplier_retrieve"
+    ),
+    path(
+        "supplier/update/<int:pk>/",
+        SupplierUpdateApiView.as_view(),
+        name="supplier_update",
+    ),
+    path(
+        "supplier/delete/<int:pk>/",
+        SupplierDestroyApiView.as_view(),
+        name="supplier_delete",
+    ),
     path("order/", OrderListApiView.as_view(), name="order_list"),
     path("order/create/", OrderCreateApiView.as_view(), name="order_create"),
     path("order/<int:pk>/", OrderDetailApiView.as_view(), name="order_retrieve"),

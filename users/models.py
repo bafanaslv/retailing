@@ -4,6 +4,7 @@
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+
 from retailing.models import Supplier
 
 NULLABLE = {"blank": True, "null": True}
@@ -11,7 +12,8 @@ NULLABLE = {"blank": True, "null": True}
 
 class Users(AbstractUser):
     """Пользователи сети. Поля supplier и supplier|_type добавлены для таго, чтобы каждый раз перед выполнением
-    какой либо операции не знать где работает пользователь сети и к какому типу относится компания где он работает."""
+    какой либо операции не знать где работает пользователь сети и к какому типу относится компания где он работает.
+    """
 
     username = models.CharField(max_length=50, verbose_name="имя пользователя")
     email = models.EmailField(unique=True, verbose_name="E-mail")
@@ -27,11 +29,14 @@ class Users(AbstractUser):
     )
     supplier = models.ForeignKey(
         Supplier,
-        verbose_name='поставщик',
+        verbose_name="поставщик",
         on_delete=models.PROTECT,
-        related_name="supplier_user", **NULLABLE
+        related_name="supplier_user",
+        **NULLABLE,
     )
-    supplier_type = models.CharField(max_length=11, verbose_name="тип участника сети", **NULLABLE)
+    supplier_type = models.CharField(
+        max_length=11, verbose_name="тип участника сети", **NULLABLE
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

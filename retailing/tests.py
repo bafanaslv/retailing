@@ -8,7 +8,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from retailing.models import Supplier, Order, Product, Category, Country, Warehouse, Payable
+from retailing.models import (Category, Country, Order, Payable, Product,
+                              Supplier, Warehouse)
 from users.models import Users
 
 
@@ -37,7 +38,7 @@ class SupplierTestCase(APITestCase):
             "country": self.country.pk,
             "city": "New York",
             "street": "Manhattan",
-            "house_number": 4
+            "house_number": 4,
         }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -60,7 +61,7 @@ class SupplierTestCase(APITestCase):
             "country": self.country.pk,
             "city": "New York",
             "street": "Manhattan",
-            "house_number": 4
+            "house_number": 4,
         }
         self.client.post(url_create, data)
 
@@ -80,7 +81,7 @@ class SupplierTestCase(APITestCase):
             "country": self.country.pk,
             "city": "New York",
             "street": "Manhattan",
-            "house_number": 4
+            "house_number": 4,
         }
         self.client.post(url_create, data)
 
@@ -103,7 +104,7 @@ class SupplierTestCase(APITestCase):
             "country": self.country.pk,
             "city": "New York",
             "street": "Manhattan",
-            "house_number": 4
+            "house_number": 4,
         }
         self.client.post(url_create, data)
 
@@ -136,7 +137,7 @@ class OrderTestCaseAddition(APITestCase):
             city="New York",
             street="Manhattan",
             house_number=4,
-            user_id=self.user.pk
+            user_id=self.user.pk,
         )
         self.user.supplier_id = self.supplier.pk
         self.user.supplier_type = self.supplier.type
@@ -146,7 +147,7 @@ class OrderTestCaseAddition(APITestCase):
             category_id=self.category.pk,
             user_id=self.user.pk,
             supplier_id=self.supplier.pk,
-            release_date="2024-10-01"
+            release_date="2024-10-01",
         )
 
     def test_order_create_vendor(self):

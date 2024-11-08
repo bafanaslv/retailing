@@ -1,16 +1,25 @@
-from django.db.models import Sum, Q
+from django.db.models import Q, Sum
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
-from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.generics import (CreateAPIView, DestroyAPIView,
+                                     ListAPIView, RetrieveAPIView,
+                                     UpdateAPIView)
 from rest_framework.permissions import AllowAny
 
-from retailing.models import Supplier, Category, Country, Product, Warehouse, Order, Payable
-from retailing.paginations import CategoryPaginator, SupplierPaginator, CountryPaginator, ProductPaginator, \
-    WarehousePaginator, OrderPaginator, PayablePaginator
-from retailing.serialaizer import SupplierSerializer, CategorySerializer, CountrySerializer, SupplierSerializerReadOnly, \
-    ProductSerializer, ProductSerializerReadOnly, WarehouseSerializer, OrderSerializer, OrderSerializerReadOnly, \
-    PayableSerializer
+from retailing.models import (Category, Country, Order, Payable, Product,
+                              Supplier, Warehouse)
+from retailing.paginations import (CategoryPaginator, CountryPaginator,
+                                   OrderPaginator, PayablePaginator,
+                                   ProductPaginator, SupplierPaginator,
+                                   WarehousePaginator)
+from retailing.serialaizer import (CategorySerializer, CountrySerializer,
+                                   OrderSerializer, OrderSerializerReadOnly,
+                                   PayableSerializer, ProductSerializer,
+                                   ProductSerializerReadOnly,
+                                   SupplierSerializer,
+                                   SupplierSerializerReadOnly,
+                                   WarehouseSerializer)
 from users.models import Users
 from users.permissions import IsActiveAndNotSuperuser
 
@@ -21,7 +30,7 @@ class CountryViewSet(viewsets.ModelViewSet):
 
     queryset = Country.objects.all().order_by("id")
     serializer_class = CountrySerializer
-#    pagination_class = CountryPaginator
+    pagination_class = CountryPaginator
 
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ("name",)
@@ -38,7 +47,7 @@ class CountryViewSet(viewsets.ModelViewSet):
 class SupplierListApiView(ListAPIView):
     queryset = Supplier.objects.all().order_by("name")
     serializer_class = SupplierSerializerReadOnly
-    # pagination_class = SupplierPaginator
+    pagination_class = SupplierPaginator
     permission_classes = (AllowAny,)
 
 
@@ -50,7 +59,8 @@ class SupplierDetailApiView(RetrieveAPIView):
 
 class SupplierCreateApiView(CreateAPIView):
     """Создание поставщика. Пользователь может создает поставщика и становится сотрудником у поставщика. Другого
-    поставщика он создать не может, но может других пользоватерелей зарегистрировать в своей компании."""
+    поставщика он создать не может, но может других пользоватерелей зарегистрировать в своей компании.
+    """
 
     serializer_class = SupplierSerializer
     queryset = Supplier.objects.all()
@@ -70,11 +80,13 @@ class SupplierCreateApiView(CreateAPIView):
         self.request.user.supplier_id = supplier.id
         self.request.user.supplier_type = supplier.type
         self.request.user.save()
+
     permission_classes = (IsActiveAndNotSuperuser,)
 
 
 class SupplierUpdateApiView(UpdateAPIView):
     """Право на изменения только у сотрудника компании поставщика."""
+
     serializer_class = SupplierSerializer
 
     def get_queryset(self):
@@ -83,6 +95,7 @@ class SupplierUpdateApiView(UpdateAPIView):
     def perform_update(self, serializer):
         supplier = serializer.save()
         supplier.save()
+
     permission_classes = (IsActiveAndNotSuperuser,)
 
 
@@ -110,14 +123,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
     """Представление для категорий товаров."""
 
     def get_queryset(self):
-        if self.action == "destroy" and Product.objects.filter(category=self.kwargs["pk"]) is not None:
+        if (
+            self.action == "destroy"
+            and Product.objects.filter(category=self.kwargs["pk"]) is not None
+        ):
             raise ValidationError(
                 "Невозможно удалить категорию - есть зарегистрированные продукты !"
             )
         return Category.objects.all().order_by("id")
 
     serializer_class = CategorySerializer
-    # pagination_class = CategoryPaginator
+    pagination_class = CategoryPaginator
 
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ("name",)
@@ -130,7 +146,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     """Представление для товаров. Продукт может создавать только сотрудник завода производителя (вендора)."""
 
     def get_queryset(self):
-        if self.action == "destroy" and Order.objects.filter(product=self.kwargs["pk"]) is not None:
+        if (
+            self.action == "destroy"
+            and Order.objects.filter(product=self.kwargs["pk"]) is not None
+        ):
             raise ValidationError(
                 f"Невозможно удалить продукт - он находится в обороте !"
             )
@@ -153,7 +172,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             self.permission_classes = (IsActiveAndNotSuperuser,)
         return super().get_permissions()
 
-    # pagination_class = ProductPaginator
+    pagination_class = ProductPaginator
 
     def perform_create(self, serializer):
         if self.action == "create" and self.request.user.supplier_type != "vendor":
@@ -169,7 +188,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         """Увеличиваем количество промотров продукта."""
         obj = self.get_object()
         obj.view_counter = obj.view_counter + 1
-        obj.save(update_fields=("view_counter", ))
+        obj.save(update_fields=("view_counter",))
         return super().retrieve(request, *args, **kwargs)
 
     filter_backends = [SearchFilter, OrderingFilter]
@@ -179,8 +198,8 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 class WarehouseViewSet(viewsets.ModelViewSet):
     """Представление для складов товаров. Модель (таблица) заполняется (изменяется) автоматически по мере
-     выполнения операуий покупки товаров у постащиков. Разрешен только просмотр астивными пользователями сети своих
-     товаров (owner = supplier_id)."""
+    выполнения операуий покупки товаров у постащиков. Разрешен только просмотр астивными пользователями сети своих
+    товаров (owner = supplier_id)."""
 
     def get_queryset(self):
         if self.action in ["list", "retrieve"]:
@@ -191,7 +210,7 @@ class WarehouseViewSet(viewsets.ModelViewSet):
             )
 
     serializer_class = WarehouseSerializer
-#    pagination_class = WarehousePaginator
+    pagination_class = WarehousePaginator
 
     permission_classes = (IsActiveAndNotSuperuser,)
 
@@ -201,7 +220,7 @@ class OrderListApiView(ListAPIView):
         return Order.objects.filter(owner=self.request.user.supplier)
 
     serializer_class = OrderSerializerReadOnly
-    # pagination_class = OrderPaginator
+    pagination_class = OrderPaginator
     permission_classes = (IsActiveAndNotSuperuser,)
 
 
@@ -219,71 +238,90 @@ class OrderCreateApiView(CreateAPIView):
             raise ValidationError(
                 f"Пополнить склад готовой продукций может только вендор !"
             )
-        if operation == "addition" and self.request.user.supplier_type == "vendor" and supplier.pk != self.request.user.supplier_id:
+        if (
+            operation == "addition"
+            and self.request.user.supplier_type == "vendor"
+            and supplier.pk != self.request.user.supplier_id
+        ):
             raise ValidationError(
                 f"Пополнить склад готовой продукции может только сотрудник вендора !"
             )
 
-        if operation == "buying" and  supplier.pk == self.request.user.supplier_id:
-            raise ValidationError(
-                f"Нельзя купить товар у самого себя !"
-            )
+        if operation == "buying" and supplier.pk == self.request.user.supplier_id:
+            raise ValidationError(f"Нельзя купить товар у самого себя !")
 
         if operation == "buying" and self.request.user.supplier_type == "vendor":
             raise ValidationError(
                 f"Вендор может пополнить склад готовой продукции но не может купить !"
             )
 
-        if operation == "buying" and self.request.user.supplier_type == "distributor" and supplier.type != "vendor":
+        if (
+            operation == "buying"
+            and self.request.user.supplier_type == "distributor"
+            and supplier.type != "vendor"
+        ):
             raise ValidationError(
                 f"Дистрибьютор может купить товар только у завода производителя !"
             )
 
-        if operation == "buying" and self.request.user.supplier_type == "retailer" and supplier.type not in ["vendor", "distributor"]:
+        if (
+            operation == "buying"
+            and self.request.user.supplier_type == "retailer"
+            and supplier.type not in ["vendor", "distributor"]
+        ):
             raise ValidationError(
                 f"Ритейлер может купить товар только у завода производителя (вендора) или дистрибьютера !"
             )
 
         if operation == "buying":
             # проверяем есть ли у поставщика требуемое количество товара
-            warehouse_quantity = Warehouse.objects.filter(owner=supplier.pk, product=serializer.validated_data["product"]).aggregate(Sum("quantity"))
+            warehouse_quantity = Warehouse.objects.filter(
+                owner=supplier.pk, product=serializer.validated_data["product"]
+            ).aggregate(Sum("quantity"))
             if warehouse_quantity["quantity__sum"] is None:
-                raise ValidationError(
-                    f"У поставщика отсутствует требуемый товар !"
-                )
-            if warehouse_quantity["quantity__sum"] < serializer.validated_data["quantity"]:
-                raise ValidationError(
-                    f"У поставщика недостаточно требуемого товара !"
-                )
+                raise ValidationError(f"У поставщика отсутствует требуемый товар !")
+            if (
+                warehouse_quantity["quantity__sum"]
+                < serializer.validated_data["quantity"]
+            ):
+                raise ValidationError(f"У поставщика недостаточно требуемого товара !")
 
         order = serializer.save()
         order.user = self.request.user
         order.owner = self.request.user.supplier
-        order.amount = order.price*order.quantity
+        order.amount = order.price * order.quantity
         order.save()
         if operation in ["addition", "buying"]:
             # перемещаем купленный товар на остаток покупателя
-            warehouse_owner = list(Warehouse.objects.filter(owner=order.owner.id, product=order.product.id))
+            warehouse_owner = list(
+                Warehouse.objects.filter(owner=order.owner.id, product=order.product.id)
+            )
             if len(warehouse_owner) == 1:
                 warehouse_owner[0].quantity += order.quantity
                 warehouse_owner[0].save()
             else:
                 Warehouse.objects.create(
-                    owner=order.owner,
-                    product=order.product,
-                    quantity=order.quantity
+                    owner=order.owner, product=order.product, quantity=order.quantity
                 )
             if self.request.user.supplier_type != "vendor":
                 # уменьшаем у поставщика остаток товара если это покупка
-                warehouse_supplier = list(Warehouse.objects.filter(owner=order.supplier, product=order.product))
+                warehouse_supplier = list(
+                    Warehouse.objects.filter(
+                        owner=order.supplier, product=order.product
+                    )
+                )
                 warehouse_supplier[0].quantity -= order.quantity
                 warehouse_supplier[0].save()
 
-            if self.request.user.supplier_type != "vendor" and order.quantity != order.payment_amount:
-                print(333333333333333333333)
+            if (
+                self.request.user.supplier_type != "vendor"
+                and order.quantity != order.payment_amount
+            ):
                 # Если стоимость товара отличается от оплаченной суммы то разницу записываем в долг поставщику
                 # или покупателю. Если положительная сумма должник покупатель, отрицательная - поставщик.
-                payable = list(Payable.objects.filter(owner=order.owner, supplier=order.supplier))
+                payable = list(
+                    Payable.objects.filter(owner=order.owner, supplier=order.supplier)
+                )
                 if len(payable) == 1:
                     payable[0].amount += order.amount - order.payment_amount
                     payable[0].save()
@@ -291,7 +329,7 @@ class OrderCreateApiView(CreateAPIView):
                     Payable.objects.create(
                         owner=order.owner,
                         supplier=order.supplier,
-                        amount=order.amount - order.payment_amount
+                        amount=order.amount - order.payment_amount,
                     )
 
 
@@ -319,22 +357,24 @@ class OrderDestroyApiView(DestroyAPIView):
 
 class PayableViewSet(viewsets.ModelViewSet):
     """Представление для должников. Модель (таблица) заполняется (изменяется) автоматически по мере
-     выполнения операуий покупки товаров у постащиков. Задолженность может возникнуть как у покупателя, таки и
-     у поставщика. Разрешен только просмотр астивным пользователям сети своих долгов (owner = supplier или
-     supplier = supplier). Удаление или изменение задолженнности из API невозможно. Списание задолженности возможно
-     только с админ-панели."""
+    выполнения операуий покупки товаров у постащиков. Задолженность может возникнуть как у покупателя, таки и
+    у поставщика. Разрешен только просмотр астивным пользователям сети своих долгов (owner = supplier или
+    supplier = supplier). Удаление или изменение задолженнности из API невозможно. Списание задолженности возможно
+    только с админ-панели."""
 
     def get_queryset(self):
         if self.action in ["list", "retrieve"]:
             # из модели задолженностей выводятся только несписанные задолженности.
-            return Payable.objects.filter(Q(owner=self.request.user.supplier) | Q(supplier=self.request.user.supplier), is_paid=False)
+            return Payable.objects.filter(
+                Q(owner=self.request.user.supplier)
+                | Q(supplier=self.request.user.supplier),
+                is_paid=False,
+            )
         else:
             raise ValidationError(
                 "Невозможно создать, изменить и удалить задолженность, разрешен только просмотр !"
             )
 
     serializer_class = PayableSerializer
-#    pagination_class = PayablePaginator
+    pagination_class = PayablePaginator
     permission_classes = (IsActiveAndNotSuperuser,)
-
-

@@ -1,6 +1,8 @@
 import json
+
 from django.core.management import BaseCommand
 from django.db import connection
+
 from retailing.models import Country
 
 

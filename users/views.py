@@ -15,17 +15,20 @@ from rest_framework.generics import (CreateAPIView, DestroyAPIView,
                                      UpdateAPIView)
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from retailing.models import Supplier, Product
+from retailing.models import Supplier
 from users.models import Users
-from users.permissions import IsActive, IsSuperuser, IsActiveAndNotSuperuser
-from users.serializer import UserSerializer, UserTokenObtainPairSerializer, UserSerializerReadOnly, \
-    UserSerializerForSuperuser
+from users.permissions import IsActive, IsActiveAndNotSuperuser, IsSuperuser
+from users.serializer import (UserSerializer, UserSerializerForSuperuser,
+                              UserSerializerReadOnly,
+                              UserTokenObtainPairSerializer)
 
 
 class UserListAPIView(ListAPIView):
     serializer_class = UserSerializerReadOnly
     queryset = Users.objects.all()
-    permission_classes = [IsSuperuser,]
+    permission_classes = [
+        IsSuperuser,
+    ]
 
 
 class UserRetrieveAPIView(RetrieveAPIView):
@@ -38,10 +41,13 @@ class UserRetrieveAPIView(RetrieveAPIView):
             user = Users.objects.get(pk=self.kwargs["pk"])
             if user.supplier != self.request.user.supplier:
                 raise ValidationError(
-                "У вас недостаточно прав для просмотра учетных данных пользователя !"
-            )
+                    "У вас недостаточно прав для просмотра учетных данных пользователя !"
+                )
             return Users.objects.filter(pk=self.kwargs["pk"])
-    permission_classes = [IsActive,]
+
+    permission_classes = [
+        IsActive,
+    ]
 
 
 class UserUpdateAPIView(UpdateAPIView):
@@ -83,7 +89,11 @@ class UserUpdateAPIView(UpdateAPIView):
                     "Пользователь не дал разрешение на обработку персональных данных !"
                 )
         else:
-            if user.supplier is not None and user_obj.supplier is not None and user_obj.supplier_id != user.supplier_id:
+            if (
+                user.supplier is not None
+                and user_obj.supplier is not None
+                and user_obj.supplier_id != user.supplier_id
+            ):
                 raise ValidationError(
                     "Невозможно изменить место работы у пользователя зарегистрированного в сети за другой компанией !"
                 )
@@ -95,7 +105,10 @@ class UserUpdateAPIView(UpdateAPIView):
                 user.supplier_type = None
             user.set_password(self.request.data.get("password"))
         user.save()
-    permission_classes = [IsActive,]
+
+    permission_classes = [
+        IsActive,
+    ]
 
 
 class UserDestroyAPIView(DestroyAPIView):
@@ -107,13 +120,17 @@ class UserDestroyAPIView(DestroyAPIView):
                 "Невозможно удалить пользователя который зарегистрирован в сети за компанией !"
             )
         return Users.objects.all()
-    permission_classes = [IsSuperuser,]
+
+    permission_classes = [
+        IsSuperuser,
+    ]
 
 
 class UserCreateAPIView(CreateAPIView):
     """В сети может зарегистироваться любой пользователь, но до проверки и утверждения данных суперпользователем
     он не является активным (is_active = False) и не имеет никаких прав кроме просмотра разрешенных данных.
-    Сделать активным пользователя можно только если он дал разрешение на обработку персональных данных."""
+    Сделать активным пользователя можно только если он дал разрешение на обработку персональных данных.
+    """
 
     serializer_class = UserSerializer
     queryset = Users.objects.all()

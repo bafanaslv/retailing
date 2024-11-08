@@ -1,6 +1,8 @@
 from datetime import date
+
 from django.contrib import admin
-from retailing.models import Supplier, Payable
+
+from retailing.models import Payable, Supplier
 
 
 @admin.register(Supplier)
@@ -15,9 +17,9 @@ class SupplierAdmin(admin.ModelAdmin):
         "city",
         "street",
         "house_number",
-        "created_at"
+        "created_at",
     )
-    list_filter = ('city',)
+    list_filter = ("city",)
     search_fields = ("name",)
     search_help_text = "Поиск по названию"
 

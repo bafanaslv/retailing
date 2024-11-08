@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from retailing.models import Supplier, Category, Country, Product, Warehouse, Order, Payable
+
+from retailing.models import (Category, Country, Order, Payable, Product,
+                              Supplier, Warehouse)
 
 
 class SupplierSerializer(serializers.ModelSerializer):

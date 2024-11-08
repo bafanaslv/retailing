@@ -1,5 +1,7 @@
-from django.db import models
 from datetime import date
+
+from django.db import models
+
 from config import settings
 
 NULLABLE = {"blank": True, "null": True}
@@ -8,12 +10,8 @@ NULLABLE = {"blank": True, "null": True}
 class Country(models.Model):
     """Страна где зарегистрован поставщик товара."""
 
-    code = models.CharField(
-        max_length=2, unique=True, verbose_name="код страны"
-    )
-    name = models.CharField(
-        max_length=60, unique=True, verbose_name="название страны"
-    )
+    code = models.CharField(max_length=2, unique=True, verbose_name="код страны")
+    name = models.CharField(max_length=60, unique=True, verbose_name="название страны")
 
     class Meta:
         verbose_name = "Страна"
@@ -36,15 +34,19 @@ class Supplier(models.Model):
         ("retailer", "ритейлер"),
     ]
 
-    name = models.CharField(max_length=100, verbose_name="нименование поставщика", unique=True)
-    type = models.CharField(max_length=11, choices=TYPE, verbose_name="тип участника сети")
+    name = models.CharField(
+        max_length=100, verbose_name="нименование поставщика", unique=True
+    )
+    type = models.CharField(
+        max_length=11, choices=TYPE, verbose_name="тип участника сети"
+    )
     email = models.EmailField(unique=True, verbose_name="E-mail")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         verbose_name="сотрудник",
         related_name="supplier_user",
-        ** NULLABLE,
+        **NULLABLE,
     )
     country = models.ForeignKey(
         Country,
@@ -86,41 +88,34 @@ class Category(models.Model):
 class Product(models.Model):
     """Справочник продукции. Доступ только для сотрудников заводов изготовителей (вендоров)."""
 
-    name = models.CharField(
-        max_length=100,
-        verbose_name="наименование"
-    )
-    model = models.TextField(
-        verbose_name="модель", **NULLABLE
-    )
+    name = models.CharField(max_length=100, verbose_name="наименование")
+    model = models.TextField(verbose_name="модель", **NULLABLE)
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
         related_name="product_category",
-        verbose_name="категория"
+        verbose_name="категория",
     )
     supplier = models.ForeignKey(
         Supplier,
         on_delete=models.PROTECT,
         related_name="product_supplier",
-        verbose_name='завод производитель',
-        ** NULLABLE
+        verbose_name="завод производитель",
+        **NULLABLE,
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         verbose_name="сотрудник",
         related_name="product_user",
-        **NULLABLE
+        **NULLABLE,
     )
     release_date = models.DateField(verbose_name="дата выхода продукта на рынок")
     view_counter = models.PositiveIntegerField(
-        default=0,
-        verbose_name="счетчик проcмотров"
+        default=0, verbose_name="счетчик проcмотров"
     )
     image = models.ImageField(
-        upload_to="catalog/media",
-        verbose_name="изображение", **NULLABLE
+        upload_to="catalog/media", verbose_name="изображение", **NULLABLE
     )
 
     class Meta:
@@ -136,16 +131,17 @@ class Warehouse(models.Model):
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='собстенник',
+        verbose_name="собстенник",
         on_delete=models.PROTECT,
-        related_name="owner_warehouse"
+        related_name="owner_warehouse",
     )
     product = models.ForeignKey(
-        Product, verbose_name='товар',
+        Product,
+        verbose_name="товар",
         on_delete=models.PROTECT,
-        related_name="owner_product"
+        related_name="owner_product",
     )
-    quantity = models.PositiveIntegerField(verbose_name='количество')
+    quantity = models.PositiveIntegerField(verbose_name="количество")
 
     class Meta:
         verbose_name = "Остаток"
@@ -157,23 +153,25 @@ class Warehouse(models.Model):
 
 class Payable(models.Model):
     """Задолженность. Могут быть оба вида заолженности, за поставщиком (недопоставлен товар) и покупателем
-     (не заплачены деньги за весь или часть товара). Если долг возник за поставщиком, то сумма долга (amount)
-     принимает отрицательное значение."""
+    (не заплачены деньги за весь или часть товара). Если долг возник за поставщиком, то сумма долга (amount)
+    принимает отрицательное значение."""
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='покупатель',
+        verbose_name="покупатель",
         on_delete=models.PROTECT,
         related_name="owner_payable",
-        ** NULLABLE
+        **NULLABLE,
     )
     supplier = models.ForeignKey(
         Supplier,
-        verbose_name='поставщик',
+        verbose_name="поставщик",
         on_delete=models.PROTECT,
-        related_name="supplier_payable"
+        related_name="supplier_payable",
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма задолженности")
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="сумма задолженности"
+    )
     created_at = models.DateField(verbose_name="дата возникновения", default=date.today)
     is_paid = models.BooleanField(verbose_name="списана", default=False)
     paid_date = models.DateField(verbose_name="дата списания", **NULLABLE)
@@ -200,35 +198,42 @@ class Order(models.Model):
 
     owner = models.ForeignKey(
         Supplier,
-        verbose_name='собственник',
+        verbose_name="собственник",
         on_delete=models.PROTECT,
         related_name="order_owner",
-        **NULLABLE
+        **NULLABLE,
     )
     supplier = models.ForeignKey(
         Supplier,
-        verbose_name='поставщик',
+        verbose_name="поставщик",
         on_delete=models.PROTECT,
         related_name="order_supplier",
-        **NULLABLE
+        **NULLABLE,
     )
     product = models.ForeignKey(
-        Product, verbose_name='товар',
+        Product,
+        verbose_name="товар",
         on_delete=models.PROTECT,
-        related_name="order_product"
+        related_name="order_product",
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         verbose_name="сотрудник",
         related_name="order_user",
-        **NULLABLE
+        **NULLABLE,
     )
-    operation = models.CharField(max_length=10, verbose_name='действие', choices=OPERATION)
+    operation = models.CharField(
+        max_length=10, verbose_name="действие", choices=OPERATION
+    )
     quantity = models.PositiveIntegerField(verbose_name="количество")
     price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="цена")
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма продукции", **NULLABLE)
-    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="сумма оплаты", default=0)
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="сумма продукции", **NULLABLE
+    )
+    payment_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="сумма оплаты", default=0
+    )
     created_at = models.DateField(verbose_name="дата операции", default=date.today)
 
     class Meta:
